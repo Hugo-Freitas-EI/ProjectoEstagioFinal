@@ -128,3 +128,6 @@ O CMS usa `post_type` para distinguir:
 - [ ] Sitemap.xml e robots.txt automáticos
 - [ ] Cache de páginas
 - [ ] API REST pública (sem auth)
+
+
+npm run dev

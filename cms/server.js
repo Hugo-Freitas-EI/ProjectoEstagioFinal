@@ -52,7 +52,7 @@ app.use(function(err, req, res, next) {
   res.status(500).render('frontend/error', { pageTitle: 'Erro', message: err.message, navPages: [] });
 });
 
-var PORT = process.env.PORT || 3000;
+var PORT = process.env.PORT || 3001;
 app.listen(PORT, function() {
   console.log('NodeCMS a correr em http://localhost:' + PORT);
   console.log('Admin: http://localhost:' + PORT + '/admin');
