@@ -1,0 +1,47 @@
+<%- include('../partials/frontend-head', { pageTitle: 'Início' }) %>
+<%- include('../partials/frontend-header', { currentPath: '/' }) %>
+
+<div class="container">
+  <% if (posts.length === 0) { %>
+    <div class="empty-state">
+      <div class="icon">📝</div>
+      <h2>Sem posts publicados</h2>
+      <p>Em breve haverá conteúdo aqui.</p>
+    </div>
+  <% } else { %>
+    <div class="posts-list">
+      <% posts.forEach(post => { %>
+        <article class="post-card">
+          <div class="post-meta-top">
+            <span class="post-date">
+              <%= new Date(post.post_date).toLocaleDateString('pt-PT', {day:'numeric',month:'long',year:'numeric'}) %>
+            </span>
+          </div>
+          <h2><a href="/post/<%= post.post_name %>"><%= post.post_title %></a></h2>
+          <% if (post.post_excerpt) { %>
+            <p class="post-excerpt"><%= post.post_excerpt %></p>
+          <% } else { %>
+            <p class="post-excerpt"><%= post.post_content.replace(/[#*`>_\[\]]/g, '').substring(0, 160) %>...</p>
+          <% } %>
+          <a class="read-more" href="/post/<%= post.post_name %>">Ler mais →</a>
+        </article>
+      <% }) %>
+    </div>
+
+    <% if (totalPages > 1) { %>
+      <div class="pagination">
+        <% if (currentPage > 1) { %>
+          <a class="page-btn" href="/?page=<%= currentPage - 1 %>">← Anterior</a>
+        <% } %>
+        <% for(let i = 1; i <= totalPages; i++) { %>
+          <a class="page-btn <%= i === currentPage ? 'active' : '' %>" href="/?page=<%= i %>"><%= i %></a>
+        <% } %>
+        <% if (currentPage < totalPages) { %>
+          <a class="page-btn" href="/?page=<%= currentPage + 1 %>">Próximo →</a>
+        <% } %>
+      </div>
+    <% } %>
+  <% } %>
+</div>
+
+<%- include('../partials/frontend-footer') %>

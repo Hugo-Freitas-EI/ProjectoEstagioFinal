@@ -1,0 +1,16 @@
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <a class="site-name" href="/"><%= siteName %></a>
+      <% if (siteTagline) { %><span class="site-tagline"><%= siteTagline %></span><% } %>
+    </div>
+    <nav id="site-nav">
+      <a href="/" class="<%= typeof currentPath !== 'undefined' && currentPath === '/' ? 'active' : '' %>">Início</a>
+      <% if (typeof navPages !== 'undefined') { %>
+        <% navPages.forEach(p => { %>
+          <a href="/page/<%= p.post_name %>" class="<%= typeof currentPath !== 'undefined' && currentPath === '/page/' + p.post_name ? 'active' : '' %>"><%= p.post_title %></a>
+        <% }) %>
+      <% } %>
+    </nav>
+  </div>
+</header>

@@ -1,0 +1,28 @@
+<%- include('../partials/frontend-head', { pageTitle: post.post_title, metaDesc: post.post_excerpt }) %>
+<%- include('../partials/frontend-header', { currentPath: '/post/' + post.post_name }) %>
+
+<div class="container-narrow">
+  <a class="back-link" href="/">← Voltar aos posts</a>
+
+  <article>
+    <div class="post-header">
+      <h1><%= post.post_title %></h1>
+      <div class="meta">
+        <span><%= new Date(post.post_date).toLocaleDateString('pt-PT', {day:'numeric',month:'long',year:'numeric'}) %></span>
+        <% if (post.post_modified && post.post_modified !== post.post_date) { %>
+          <span>· Atualizado em <%= new Date(post.post_modified).toLocaleDateString('pt-PT') %></span>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="post-body">
+      <%- bodyHtml %>
+    </div>
+  </article>
+
+  <div style="margin-top:48px;padding-top:28px;border-top:1px solid #e5e5e5">
+    <a class="back-link" href="/">← Voltar aos posts</a>
+  </div>
+</div>
+
+<%- include('../partials/frontend-footer') %>

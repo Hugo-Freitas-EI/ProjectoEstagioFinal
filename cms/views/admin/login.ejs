@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Login · NodeCMS</title>
+<link rel="stylesheet" href="/css/admin.css">
+<style>
+  body { display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  .auth-box { width:380px; }
+  .auth-title { font-family:'DM Serif Display',serif; font-size:28px; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:4px; }
+  .auth-sub { font-size:13px; color:var(--text2); margin-bottom:28px; }
+  .auth-link { text-align:center; margin-top:16px; font-size:13px; color:var(--text2); }
+  .auth-link a { color:var(--accent2); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="card auth-box">
+  <h1 class="auth-title">NodeCMS</h1>
+  <p class="auth-sub">Painel de Administração</p>
+
+  <% if (typeof error !== 'undefined' && error) { %>
+    <div class="alert alert-error"><%= error %></div>
+  <% } %>
+
+  <form method="POST" action="/admin/login">
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input type="email" name="email" class="form-control" placeholder="admin@site.com" required autofocus>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+    </div>
+    <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;padding:11px">Entrar</button>
+  </form>
+
+  <div class="auth-link">
+    Sem conta? <a href="/admin/register">Criar conta de administrador</a>
+  </div>
+</div>
+</body>
+</html>

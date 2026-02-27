@@ -1,0 +1,13 @@
+<%- include('../partials/frontend-head', { pageTitle: 'Erro' }) %>
+<%- include('../partials/frontend-header', { currentPath: '' }) %>
+
+<div class="container">
+  <div class="empty-state">
+    <div class="icon" style="font-size:64px;margin-bottom:20px">⚠️</div>
+    <h2>Ocorreu um erro</h2>
+    <p><%= typeof message !== 'undefined' ? message : 'Erro interno do servidor.' %></p>
+    <a href="/" class="btn" style="display:inline-flex;margin-top:16px;background:#1c1c1e;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px">← Voltar ao início</a>
+  </div>
+</div>
+
+<%- include('../partials/frontend-footer') %>
