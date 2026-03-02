@@ -1,69 +1,105 @@
 <%- include('../partials/admin-layout', { pageTitle: 'Dashboard', currentPage: 'dashboard' }) %>
 
-<div class="stats-grid">
-  <div class="stat-card">
-    <div class="stat-label">Posts Publicados</div>
-    <div class="stat-value"><%= stats.publishedPosts %></div>
-    <div class="stat-sub"><%= stats.draftPosts %> rascunhos</div>
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3">
+    <div class="card">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="stat-icon purple"><i class="bi bi-pencil-square"></i></div>
+        <div>
+          <div class="stat-label">Posts Publicados</div>
+          <div class="stat-value"><%= stats.publishedPosts %></div>
+          <div class="stat-sub"><%= stats.draftPosts %> rascunhos</div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="stat-card">
-    <div class="stat-label">Páginas</div>
-    <div class="stat-value"><%= stats.publishedPages %></div>
-    <div class="stat-sub">publicadas</div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="stat-icon green"><i class="bi bi-file-text"></i></div>
+        <div>
+          <div class="stat-label">Páginas</div>
+          <div class="stat-value"><%= stats.publishedPages %></div>
+          <div class="stat-sub">publicadas</div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="stat-card">
-    <div class="stat-label">Base de Dados</div>
-    <div class="stat-value" style="font-size:20px;margin-top:6px">MySQL</div>
-    <div class="stat-sub">Laragon · wp_posts</div>
-  </div>
-  <div class="stat-card">
-    <div class="stat-label">Utilizadores</div>
-    <div class="stat-value"><%= stats.totalUsers %></div>
-    <div class="stat-sub">registados</div>
+  <div class="col-sm-6 col-xl-3">
+    <div class="card">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="stat-icon blue"><i class="bi bi-people"></i></div>
+        <div>
+          <div class="stat-label">Utilizadores</div>
+          <div class="stat-value"><%= stats.totalUsers %></div>
+          <div class="stat-sub">registados</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
-
-  <!-- Posts Recentes -->
-  <div class="card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <span style="font-family:'DM Serif Display',serif;font-size:16px">Posts Recentes</span>
-      <a href="/admin/posts" class="btn btn-ghost btn-sm">Ver todos</a>
-    </div>
-    <% if (recentPosts.length === 0) { %>
-      <div class="empty-state" style="padding:24px">
-        <div class="empty-icon">📝</div>
-        <p>Sem posts ainda</p>
-        <a href="/admin/posts/new" class="btn btn-primary btn-sm" style="margin-top:8px">Criar primeiro post</a>
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span style="font-family:'DM Serif Display',serif;font-size:16px">Posts Recentes</span>
+        <a href="/admin/posts" class="btn btn-sm btn-outline-secondary">Ver todos</a>
       </div>
-    <% } else { %>
-      <% recentPosts.forEach(p => { %>
-        <div style="display:flex;align-items:start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">
-          <div style="width:8px;height:8px;border-radius:50%;background:<%= p.post_status==='publish'?'var(--success)':'var(--warning)' %>;margin-top:5px;flex-shrink:0"></div>
-          <div style="min-width:0">
-            <a href="/admin/posts/<%= p.ID %>/edit" style="font-size:13px;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block"><%= p.post_title || '(sem título)' %></a>
-            <div class="text-muted"><%= new Date(p.post_date).toLocaleDateString('pt-PT') %> · <span class="badge badge-<%= p.post_status %>" style="font-size:10px"><%= p.post_status==='publish'?'Publicado':'Rascunho' %></span></div>
+      <div class="card-body p-0">
+        <% if (recentPosts.length === 0) { %>
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-pencil fs-2 d-block mb-2 opacity-50"></i>
+            <p class="mb-3">Sem posts ainda</p>
+            <a href="/admin/posts/new" class="btn btn-sm btn-primary">Criar primeiro post</a>
           </div>
-        </div>
-      <% }) %>
-    <% } %>
-  </div>
-
-  <!-- Ações Rápidas -->
-  <div class="card">
-    <div style="font-family:'DM Serif Display',serif;font-size:16px;margin-bottom:16px">Ações Rápidas</div>
-    <div style="display:flex;flex-direction:column;gap:10px">
-      <a href="/admin/posts/new" class="btn btn-primary" style="justify-content:flex-start">✎ &nbsp;Escrever novo post</a>
-      <a href="/admin/pages/new" class="btn btn-ghost" style="justify-content:flex-start">☰ &nbsp;Criar nova página</a>
-      <a href="/admin/media" class="btn btn-ghost" style="justify-content:flex-start">⊙ &nbsp;Gerir media</a>
-      <a href="/admin/users" class="btn btn-ghost" style="justify-content:flex-start">◉ &nbsp;Gerir utilizadores</a>
+        <% } else { %>
+          <ul class="list-group list-group-flush">
+            <% recentPosts.forEach(function(p) { %>
+              <li class="list-group-item d-flex align-items-center justify-content-between gap-2 py-2">
+                <div class="d-flex align-items-center gap-2 text-truncate">
+                  <span class="rounded-circle flex-shrink-0"
+                    style="width:7px;height:7px;background:<%= p.post_status==='publish' ? 'var(--success)' : 'var(--warning)' %>;display:inline-block"></span>
+                  <a href="/admin/posts/<%= p.ID %>/edit" class="text-truncate" style="color:var(--accent2);font-size:13px">
+                    <%= p.post_title || '(sem título)' %>
+                  </a>
+                </div>
+                <span class="text-muted flex-shrink-0" style="font-size:11px;font-family:'DM Mono',monospace">
+                  <%= new Date(p.post_date).toLocaleDateString('pt-PT') %>
+                </span>
+              </li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </div>
     </div>
-    <div class="divider"></div>
-    <div class="text-muted" style="margin-bottom:6px">Site activo</div>
-    <a href="/" target="_blank" style="font-size:13px;color:var(--accent2)">↗ <%= siteName %></a>
   </div>
 
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header">
+        <span style="font-family:'DM Serif Display',serif;font-size:16px">Ações Rápidas</span>
+      </div>
+      <div class="card-body d-flex flex-column gap-2">
+        <a href="/admin/posts/new" class="quick-action">
+          <i class="bi bi-pencil-square"></i> Escrever novo post
+        </a>
+        <a href="/admin/pages/new" class="quick-action">
+          <i class="bi bi-file-earmark-plus"></i> Criar nova página
+        </a>
+        <a href="/admin/media" class="quick-action">
+          <i class="bi bi-images"></i> Gerir media
+        </a>
+        <a href="/admin/users" class="quick-action">
+          <i class="bi bi-people"></i> Gerir utilizadores
+        </a>
+        <!--<hr style="border-color:var(--border);margin:4px 0">
+        <a href="/" target="_blank" class="quick-action" style="color:var(--accent2)">
+          <i class="bi bi-box-arrow-up-right"></i> Ver o site — <%= siteName %>
+        </a>-->
+      </div>
+    </div>
+  </div>
 </div>
 
 <%- include('../partials/admin-layout-end') %>

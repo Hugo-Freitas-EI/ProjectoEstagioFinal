@@ -1,3 +1,5 @@
+console.log('admin.js carregado');
+
 // ── MARKDOWN PREVIEW (client-side only, não bloqueia submit) ──
 function mdPreview(text) {
   if (!text) return '';
@@ -52,24 +54,7 @@ function insertMd(syntax) {
   updatePreview();
 }
 
-// ── MODAL ──
-function openModal(id) {
-  var el = document.getElementById(id);
-  if (el) el.style.display = 'flex';
-}
-function closeModal(id) {
-  var el = document.getElementById(id);
-  if (el) el.style.display = 'none';
-}
-
-// Fechar modal ao clicar fora
-document.addEventListener('click', function(e) {
-  if (e.target.classList.contains('modal-overlay')) {
-    e.target.style.display = 'none';
-  }
-});
-
-// ── TOAST (para mensagens flash vindas do servidor) ──
+// ── INICIALIZAÇÃO ──
 document.addEventListener('DOMContentLoaded', function() {
   // Slug manual
   var slugEl = document.getElementById('e-slug');

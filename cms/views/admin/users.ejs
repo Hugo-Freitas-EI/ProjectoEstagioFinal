@@ -1,128 +1,66 @@
 <%- include('../partials/admin-layout', { pageTitle: 'Utilizadores', currentPage: 'users' }) %>
 
-<div style="display:flex;justify-content:flex-end;margin-bottom:16px">
-  <button class="btn btn-primary" onclick="openModal('new-user-modal')">+ Novo Utilizador</button>
+<div class="d-flex justify-content-end mb-3">
+  <a href="/admin/users/new" class="btn btn-sm btn-primary">
+    <i class="bi bi-person-plus me-1"></i> Novo Utilizador
+  </a>
 </div>
 
-<div class="table-wrap">
-  <table>
-    <thead>
-      <tr>
-        <th>Utilizador</th>
-        <th>Email</th>
-        <th>Função</th>
-        <th>Criado em</th>
-        <th>Ações</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% users.forEach(function(u) { %>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
         <tr>
-          <td>
-            <div style="display:flex;align-items:center;gap:10px">
-              <div class="user-avatar"><%= u.username[0].toUpperCase() %></div>
-              <div>
-                <div style="font-weight:500"><%= u.username %></div>
-                <% if (u.authProvider) { %>
-                  <span class="badge badge-oauth"><%= u.authProvider %></span>
+          <th>Utilizador</th>
+          <th>Email</th>
+          <th>Função</th>
+          <th>Criado em</th>
+          <th class="text-end">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% users.forEach(function(u) { %>
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="user-avatar"><%= u.username[0].toUpperCase() %></div>
+                <div>
+                  <div style="font-weight:500;font-size:14px"><%= u.username %></div>
+                  <% if (u.authProvider) { %>
+                    <span class="badge bg-info" style="font-size:9px"><%= u.authProvider %></span>
+                  <% } %>
+                </div>
+              </div>
+            </td>
+            <td class="text-muted"><%= u.email %></td>
+            <td>
+              <span class="badge <%= u.role === 'admin' ? 'bg-danger' : u.role === 'editor' ? 'bg-primary' : 'bg-secondary' %>">
+                <%= u.role || 'user' %>
+              </span>
+            </td>
+            <td class="text-muted" style="font-size:13px">
+              <%= new Date(u.createdAt).toLocaleDateString('pt-PT') %>
+            </td>
+            <td class="text-end">
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="/admin/users/<%= u.id %>/edit" class="btn btn-sm btn-outline-secondary" title="Editar">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <% if (u.id !== currentUser.id) { %>
+                  <form method="POST" action="/admin/users/<%= u.id %>/delete"
+                    onsubmit="return confirm('Apagar utilizador <%= u.username %>?')" style="display:inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Apagar">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
                 <% } %>
               </div>
-            </div>
-          </td>
-          <td class="text-muted"><%= u.email %></td>
-          <td><span class="badge badge-<%= u.role || 'user' %>"><%= u.role || 'user' %></span></td>
-          <td class="text-muted"><%= new Date(u.createdAt).toLocaleDateString('pt-PT') %></td>
-          <td style="white-space:nowrap">
-            <button class="btn btn-ghost btn-sm"
-              onclick='openEditModal(<%= JSON.stringify(u) %>)'>Editar</button>
-            <% if (u.id !== currentUser.id) { %>
-              <form method="POST" action="/admin/users/<%= u.id %>/delete"
-                style="display:inline"
-                onsubmit="return confirm('Apagar utilizador <%= u.username %>?')">
-                <button type="submit" class="btn btn-danger btn-sm">Apagar</button>
-              </form>
-            <% } %>
-          </td>
-        </tr>
-      <% }) %>
-    </tbody>
-  </table>
-</div>
-
-<!-- MODAL: Novo Utilizador -->
-<div class="modal-overlay" id="new-user-modal" style="display:none">
-  <div class="modal">
-    <h3>Novo Utilizador</h3>
-    <form method="POST" action="/admin/users">
-      <div class="form-group">
-        <label class="form-label">Nome de utilizador</label>
-        <input type="text" name="username" class="form-control" required autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input type="email" name="email" class="form-control" required autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input type="password" name="password" class="form-control" required minlength="8" autocomplete="new-password">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Função</label>
-        <select name="role" class="form-control">
-          <option value="user">Utilizador</option>
-          <option value="editor">Editor</option>
-          <option value="admin">Administrador</option>
-        </select>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-ghost" onclick="closeModal('new-user-modal')">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Criar</button>
-      </div>
-    </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
   </div>
 </div>
-
-<!-- MODAL: Editar Utilizador -->
-<div class="modal-overlay" id="edit-user-modal" style="display:none">
-  <div class="modal">
-    <h3>Editar Utilizador</h3>
-    <form method="POST" id="edit-user-form">
-      <div class="form-group">
-        <label class="form-label">Nome de utilizador</label>
-        <input type="text" name="username" id="edit-username" class="form-control" required>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input type="email" name="email" id="edit-email" class="form-control" required>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Nova password <span class="text-muted">(deixa vazio para não alterar)</span></label>
-        <input type="password" name="password" class="form-control" minlength="8" autocomplete="new-password">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Função</label>
-        <select name="role" id="edit-role" class="form-control">
-          <option value="user">Utilizador</option>
-          <option value="editor">Editor</option>
-          <option value="admin">Administrador</option>
-        </select>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-ghost" onclick="closeModal('edit-user-modal')">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Guardar</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<script>
-function openEditModal(user) {
-  document.getElementById('edit-username').value = user.username;
-  document.getElementById('edit-email').value = user.email;
-  document.getElementById('edit-role').value = user.role || 'user';
-  document.getElementById('edit-user-form').action = '/admin/users/' + user.id;
-  openModal('edit-user-modal');
-}
-</script>
 
 <%- include('../partials/admin-layout-end') %>

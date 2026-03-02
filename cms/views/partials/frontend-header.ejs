@@ -1,16 +1,26 @@
-<header>
-  <div class="header-inner">
-    <div class="brand">
-      <a class="site-name" href="/"><%= siteName %></a>
-      <% if (siteTagline) { %><span class="site-tagline"><%= siteTagline %></span><% } %>
+<nav class="navbar navbar-expand-lg sticky-top">
+  <div class="container" style="max-width:860px">
+    <a class="navbar-brand" href="/">
+      <%= siteName %>
+      <% if (siteTagline) { %><small><%= siteTagline %></small><% } %>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navMenu">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item">
+          <a class="nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/' ? 'active' : '' %>" href="/">Início</a>
+        </li>
+        <% if (typeof navPages !== 'undefined') { %>
+          <% navPages.forEach(function(p) { %>
+            <li class="nav-item">
+              <a class="nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/page/' + p.post_name ? 'active' : '' %>"
+                href="/page/<%= p.post_name %>"><%= p.post_title %></a>
+            </li>
+          <% }) %>
+        <% } %>
+      </ul>
     </div>
-    <nav id="site-nav">
-      <a href="/" class="<%= typeof currentPath !== 'undefined' && currentPath === '/' ? 'active' : '' %>">Início</a>
-      <% if (typeof navPages !== 'undefined') { %>
-        <% navPages.forEach(p => { %>
-          <a href="/page/<%= p.post_name %>" class="<%= typeof currentPath !== 'undefined' && currentPath === '/page/' + p.post_name ? 'active' : '' %>"><%= p.post_title %></a>
-        <% }) %>
-      <% } %>
-    </nav>
   </div>
-</header>
+</nav>
