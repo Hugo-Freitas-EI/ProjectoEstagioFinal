@@ -8,11 +8,15 @@ const { requireAuth } = require('../middleware/auth');
 
 router.use(requireAuth);
 
-// Configuração do Multer
+// =============================
+// CONFIGURAÇÃO DO MULTER
+// =============================
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = path.join(__dirname, '../public/uploads');
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
@@ -23,7 +27,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowed = /jpeg|jpg|png|gif|webp|pdf|mp4|svg/;
     const ext = allowed.test(path.extname(file.originalname).toLowerCase());
@@ -33,43 +37,103 @@ const upload = multer({
   }
 });
 
-// GET /admin/api/media - lista ficheiros na pasta uploads
-router.get('/', (req, res) => {
-  const uploadDir = path.join(__dirname, '../public/uploads');
-  if (!fs.existsSync(uploadDir)) return res.json([]);
 
-  const files = fs.readdirSync(uploadDir).map(filename => {
-    const stat = fs.statSync(path.join(uploadDir, filename));
-    return {
-      filename,
-      url: `/uploads/${filename}`,
-      size: stat.size,
-      date: stat.mtime
-    };
-  });
+// =============================
+// GET - LISTAR MEDIA
+// =============================
+router.get('/', async (req, res) => {
+  try {
+    const [media] = await db.query(
+      'SELECT * FROM media ORDER BY data_upload DESC'
+    );
 
-  res.json(files.sort((a, b) => new Date(b.date) - new Date(a.date)));
+    res.render('admin/media', {
+      files: media
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Erro ao carregar media');
+  }
 });
 
-// POST /admin/api/media/upload
-router.post('/upload', upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Nenhum ficheiro enviado' });
 
-  res.json({
-    message: 'Upload com sucesso',
-    filename: req.file.filename,
-    url: `/uploads/${req.file.filename}`,
-    size: req.file.size,
-    mimetype: req.file.mimetype
-  });
+// =============================
+// POST - UPLOAD
+// =============================
+router.post('/upload', upload.single('file'), async (req, res) => {
+  console.log("UPLOAD ATINGIDO");
+  console.log("FILE:", req.file);
+  console.log("BODY:", req.body);
+  console.log("USER:", req.user);
+  
+  if (!req.file) return res.redirect('/admin/media');
+
+  try {
+    const now = new Date();
+    const titulo = req.file.originalname;
+    const ficheiroUrl = `/uploads/${req.file.filename}`;
+
+    await db.query(
+      `INSERT INTO media 
+       (titulo, ficheiro_url, mime_type, data_upload, autor_id, parent_id) 
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        titulo,
+        ficheiroUrl,
+        req.file.mimetype,
+        now,
+        req.user?.id || null,
+        null
+      ]
+    );
+
+    console.log("INSERT OK");
+    res.redirect('/admin/media');
+
+  } catch (error) {
+    console.error("ERRO NO INSERT:", error);
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.redirect('/admin/media');
+  }
 });
 
-// DELETE /admin/api/media/:filename
-router.delete('/:filename', (req, res) => {
-  const filepath = path.join(__dirname, '../public/uploads', req.params.filename);
-  if (!fs.existsSync(filepath)) return res.status(404).json({ error: 'Ficheiro não encontrado' });
-  fs.unlinkSync(filepath);
-  res.json({ message: 'Ficheiro apagado' });
+// =============================
+// POST - DELETE (CORRIGIDO)
+// =============================
+router.post('/:id/delete', async (req, res) => {
+
+  try {
+
+    const [rows] = await db.query(
+      'SELECT * FROM media WHERE id = ?',
+      [req.params.id]
+    );
+
+    if (rows.length === 0) {
+      return res.redirect('/admin/media');
+    }
+
+    const media = rows[0];
+
+    const filepath = path.join(
+      __dirname,
+      '../public',
+      media.ficheiro_url.replace('/uploads/', 'uploads/')
+    );
+
+    await db.query('DELETE FROM media WHERE id = ?', [req.params.id]);
+
+    if (fs.existsSync(filepath)) {
+      fs.unlinkSync(filepath);
+    }
+
+    res.redirect('/admin/media');
+
+  } catch (error) {
+    console.error('Erro ao apagar media:', error);
+    res.redirect('/admin/media');
+  }
 });
 
 module.exports = router;

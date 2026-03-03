@@ -1,0 +1,41 @@
+<%- include('../../partials/admin-layout', { pageTitle: 'Categorias', currentPage: 'categories' }) %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <span class="text-muted"><%= categories.length %> categoria(s)</span>
+  <a href="/admin/categories/new" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Nova Categoria
+  </a>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr><th>Nome</th><th>Slug</th><th>Descrição</th><th>Posts</th><th class="text-end">Ações</th></tr>
+      </thead>
+      <tbody>
+        <% if (!categories.length) { %>
+          <tr><td colspan="5" class="text-center py-4 text-muted">Sem categorias. <a href="/admin/categories/new" style="color:var(--accent2)">Criar a primeira</a></td></tr>
+        <% } %>
+        <% categories.forEach(function(c) { %>
+          <tr>
+            <td style="font-weight:500;color:var(--accent2)"><%= c.name %></td>
+            <td class="text-muted" style="font-family:'DM Mono',monospace;font-size:12px"><%= c.slug %></td>
+            <td class="text-muted"><%= c.description || '—' %></td>
+            <td><span class="badge bg-secondary"><%= c.postCount %></span></td>
+            <td class="text-end">
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="/admin/categories/<%= c.id %>/edit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                <form method="POST" action="/admin/categories/<%= c.id %>/delete" onsubmit="return confirm('Apagar categoria e todos os seus termos?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../../partials/admin-layout-end') %>

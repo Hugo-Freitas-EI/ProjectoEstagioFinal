@@ -171,4 +171,12 @@ router.get('/stats/overview', async (req, res) => {
   }
 });
 
+// -- Outras funções
+
+// Post.js
+Post.belongsTo(Register, {
+  foreignKey: 'post_author',
+  as: 'author'
+});
+
 module.exports = router;

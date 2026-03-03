@@ -1,0 +1,51 @@
+<%- include('../../partials/admin-layout', { pageTitle: 'Termos', currentPage: 'terms' }) %>
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <form method="GET" action="/admin/terms">
+    <div class="input-group input-group-sm">
+      <label class="input-group-text">Categoria</label>
+      <select name="category_id" class="form-select" onchange="this.form.submit()">
+        <option value="">Todas</option>
+        <% categories.forEach(function(c) { %>
+          <option value="<%= c.id %>" <%= filterCategoryId == c.id ? 'selected' : '' %>><%= c.name %></option>
+        <% }) %>
+      </select>
+    </div>
+  </form>
+  <a href="/admin/terms/new" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Novo Termo
+  </a>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead>
+        <tr><th>Nome</th><th>Categoria</th><th>Slug</th><th>Descrição</th><th class="text-end">Ações</th></tr>
+      </thead>
+      <tbody>
+        <% if (!terms.length) { %>
+          <tr><td colspan="5" class="text-center py-4 text-muted">Sem termos. <a href="/admin/terms/new" style="color:var(--accent2)">Criar o primeiro</a></td></tr>
+        <% } %>
+        <% terms.forEach(function(t) { %>
+          <tr>
+            <td style="font-weight:500;color:var(--accent2)"><%= t.name %></td>
+            <td><span class="badge bg-primary"><%= t.category_name %></span></td>
+            <td class="text-muted" style="font-family:'DM Mono',monospace;font-size:12px"><%= t.slug %></td>
+            <td class="text-muted"><%= t.description || '—' %></td>
+            <td class="text-end">
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="/admin/terms/<%= t.id %>/edit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
+                <form method="POST" action="/admin/terms/<%= t.id %>/delete" onsubmit="return confirm('Apagar termo?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../../partials/admin-layout-end') %>

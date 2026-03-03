@@ -1,0 +1,61 @@
+<%- include('../../partials/admin-layout', { pageTitle: 'Custom Fields', currentPage: 'field-groups' }) %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <p class="text-muted mb-0"><%= groups.length %> grupo(s) de campos</p>
+  <a href="/admin/field-groups/new" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Novo Grupo
+  </a>
+</div>
+
+<div class="d-flex flex-column gap-3">
+  <% if (!groups.length) { %>
+    <div class="card"><div class="card-body text-center py-5 text-muted">
+      <i class="bi bi-sliders d-block mb-3" style="font-size:2.5rem;opacity:.3"></i>
+      <p class="mb-3">Sem grupos de campos. Cria um grupo e associa-o a um post type.</p>
+      <a href="/admin/field-groups/new" class="btn btn-sm btn-primary">Criar primeiro grupo</a>
+    </div></div>
+  <% } %>
+
+  <% groups.forEach(function(g) { %>
+    <div class="card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <div>
+          <span style="font-family:'DM Serif Display',serif;font-size:15px"><%= g.name %></span>
+          <span class="badge bg-primary ms-2" style="font-size:10px"><%= g.post_type %></span>
+          <span class="text-muted ms-2" style="font-size:11px;font-family:'DM Mono',monospace">
+            <%= g.fields.length %> campo(s)
+          </span>
+        </div>
+        <div class="d-flex gap-1">
+          <a href="/admin/field-groups/<%= g.id %>/edit" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-pencil"></i>
+          </a>
+          <form method="POST" action="/admin/field-groups/<%= g.id %>/delete"
+            onsubmit="return confirm('Apagar grupo e todos os campos?')">
+            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+          </form>
+        </div>
+      </div>
+      <% if (g.fields.length) { %>
+        <div class="card-body p-0">
+          <table class="table table-hover mb-0">
+            <thead><tr>
+              <th>Label</th><th>Name</th><th>Tipo</th>
+            </tr></thead>
+            <tbody>
+              <% g.fields.forEach(function(f) { %>
+                <tr>
+                  <td><%= f.label %></td>
+                  <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent2)"><%= f.name %></td>
+                  <td><span class="badge bg-secondary"><%= f.type %></span></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  <% }) %>
+</div>
+
+<%- include('../../partials/admin-layout-end') %>

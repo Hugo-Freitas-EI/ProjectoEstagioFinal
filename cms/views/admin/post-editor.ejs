@@ -1,131 +1,398 @@
 <%- include('../partials/admin-layout', { pageTitle: pageTitle, currentPage: currentPage }) %>
 
-<% if (typeof error !== 'undefined' && error) { %>
-  <div class="alert alert-danger mb-3"><%= error %></div>
-<% } %>
-
-<form method="POST" action="<%= formAction %>">
-<div class="row g-3">
-
-  <div class="col-lg-8">
-    <div class="card mb-3">
-      <div class="card-body">
-        <input type="text" name="post_title" id="e-title" class="form-control border-0 p-0"
-          placeholder="Título..."
-          value="<%= post ? post.post_title : '' %>"
-          oninput="autoSlug(this.value)"
-          style="font-size:1.35rem;font-weight:600;box-shadow:none;font-family:'DM Serif Display',serif;color:var(--text)"
-          required>
-      </div>
+  <% if (typeof error !=='undefined' && error) { %>
+    <div class="alert alert-danger mb-3">
+      <%= error %>
     </div>
+    <% } %>
 
-    <div class="card mb-3">
-      <div class="card-header d-flex align-items-center gap-1 flex-wrap py-2">
-        <button type="button" class="toolbar-btn" onclick="insertMd('**texto**')"><strong>B</strong></button>
-        <button type="button" class="toolbar-btn" onclick="insertMd('*texto*')"><em>I</em></button>
-        <button type="button" class="toolbar-btn" onclick="insertMd('# ')">H1</button>
-        <button type="button" class="toolbar-btn" onclick="insertMd('## ')">H2</button>
-        <button type="button" class="toolbar-btn" onclick="insertMd('### ')">H3</button>
-        <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
-        <button type="button" class="toolbar-btn" onclick="insertMd('[texto](url)')"><i class="bi bi-link-45deg"></i></button>
-        <button type="button" class="toolbar-btn" onclick="insertMd('![alt](url)')"><i class="bi bi-image"></i></button>
-        <button type="button" class="toolbar-btn" onclick="insertMd('\`código\`')"><i class="bi bi-code"></i></button>
-        <button type="button" class="toolbar-btn" onclick="insertMd('> ')"><i class="bi bi-chat-quote"></i></button>
-        <button type="button" class="toolbar-btn" onclick="insertMd('- ')"><i class="bi bi-list-ul"></i></button>
-      </div>
-      <div class="card-body p-0">
-        <div class="editor-split">
-          <textarea name="post_content" id="e-content"
-            class="form-control"
-            placeholder="Escreve em Markdown..."
-            oninput="updatePreview()"><%= post ? post.post_content : '' %></textarea>
-          <div>
-            <div class="preview-label px-3 pt-3"><i class="bi bi-eye me-1"></i>Pré-visualização</div>
-            <div class="preview-pane" id="e-preview"></div>
+      <form method="POST" action="<%= formAction %>">
+        <div class="row g-3">
+
+          <!-- ══════════════════════════════════════════════════════════════════════════ -->
+          <!-- COLUNA PRINCIPAL (Editor de Conteúdo) -->
+          <!-- ══════════════════════════════════════════════════════════════════════════ -->
+          <div class="col-lg-8">
+
+            <!-- Título -->
+            <div class="card mb-3">
+              <div class="card-body">
+                <input type="text" name="post_title" id="e-title" class="form-control border-0 p-0"
+                  placeholder="Título..." value="<%= post ? post.post_title : '' %>" oninput="autoSlug(this.value)"
+                  style="font-size:1.35rem;font-weight:600;box-shadow:none;font-family:'DM Serif Display',serif;color:var(--text)"
+                  required>
+              </div>
+            </div>
+
+            <!--Markdon function-->
+            <script>
+              function toggleWrap(marker) {
+                const textarea = document.getElementById("e-content");
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const value = textarea.value;
+                const selected = value.substring(start, end);
+
+                if (!selected) return;
+
+                const before = marker;
+                const after = marker;
+
+                if (
+                  selected.startsWith(before) &&
+                  selected.endsWith(after)
+                ) {
+                  // REMOVE
+                  const unwrapped = selected.slice(
+                    before.length,
+                    selected.length - after.length
+                  );
+
+                  textarea.value =
+                    value.substring(0, start) +
+                    unwrapped +
+                    value.substring(end);
+
+                  textarea.setSelectionRange(start, start + unwrapped.length);
+                } else {
+                  // ADD
+                  const wrapped = before + selected + after;
+
+                  textarea.value =
+                    value.substring(0, start) +
+                    wrapped +
+                    value.substring(end);
+
+                  textarea.setSelectionRange(start, start + wrapped.length);
+                }
+
+                textarea.focus();
+                updatePreview();
+              }
+
+              function toggleLinePrefix(prefix) {
+                const textarea = document.getElementById("e-content");
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                const value = textarea.value;
+
+                const beforeSelection = value.substring(0, start);
+                const selection = value.substring(start, end);
+                const afterSelection = value.substring(end);
+
+                const lines = selection.split("\n");
+
+                const allHavePrefix = lines.every(line =>
+                  line.startsWith(prefix)
+                );
+
+                const newLines = lines.map(line => {
+                  if (allHavePrefix) {
+                    // REMOVE prefix
+                    return line.startsWith(prefix)
+                      ? line.slice(prefix.length)
+                      : line;
+                  } else {
+                    // ADD prefix
+                    return prefix + line;
+                  }
+                });
+
+                const newSelection = newLines.join("\n");
+
+                textarea.value =
+                  beforeSelection +
+                  newSelection +
+                  afterSelection;
+
+                textarea.setSelectionRange(
+                  start,
+                  start + newSelection.length
+                );
+
+                textarea.focus();
+                updatePreview();
+              }
+
+              document.addEventListener("DOMContentLoaded", function () {
+                const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                  new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+              });
+
+            </script>
+            <!-- Editor Markdown -->
+            <div class="card mb-3">
+              <div class="card-header d-flex align-items-center gap-1 flex-wrap py-2">
+                <button type="button" class="toolbar-btn" onclick="toggleWrap('**')" data-bs-toggle="tooltip"
+                  title="Negrito (Ctrl+B)">
+                  <strong>B</strong>
+                </button>
+                <button type="button" class="toolbar-btn" onclick="toggleWrap('*')" data-bs-toggle="tooltip"
+                  title="Itálico (Ctrl+I)">
+                  <em>I</em>
+                </button>
+                <button type="button" class="toolbar-btn" onclick="toggleLinePrefix('# ')" data-bs-toggle="tooltip"
+                  title="Título H1">
+                  H1
+                </button>
+                <button type="button" class="toolbar-btn" onclick="toggleLinePrefix('## ')" data-bs-toggle="tooltip"
+                  title="Título H2">
+                  H2
+                </button>
+                <button type="button" class="toolbar-btn" onclick="toggleLinePrefix('### ')" data-bs-toggle="tooltip"
+                  title="Título H3">
+                  H3
+                </button>
+                <button type="button" class="toolbar-btn" onclick="toggleLinePrefix('- ')" data-bs-toggle="tooltip"
+                  title="Lista">
+                  <i class="bi bi-list-ul"></i>
+                </button>
+                <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
+                <button type="button" class="toolbar-btn" onclick="insertMd('[texto](url)')" data-bs-toggle="tooltip"
+                  title="Inserir Link (Ctrl+K)">
+                  <i class="bi bi-link-45deg"></i>
+                </button>
+
+                <button type="button" class="toolbar-btn" onclick="insertMd('![alt](url)')" data-bs-toggle="tooltip"
+                  title="Inserir Imagem">
+                  <i class="bi bi-image"></i>
+                </button>
+                <button type="button" class="toolbar-btn" onclick="toggleWrap('`')" data-bs-toggle="tooltip"
+                  title="Código inline">
+                  <i class="bi bi-code"></i>
+                </button>
+                <button type="button" class="toolbar-btn" onclick="toggleLinePrefix('> ')" data-bs-toggle="tooltip"
+                  title="Citação">
+                  <i class="bi bi-chat-quote"></i>
+                </button>
+
+                <button type="button" class="toolbar-btn" onclick="document.execCommand('undo')"
+                  data-bs-toggle="tooltip" title="Anular">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+
+                <button type="button" class="toolbar-btn" onclick="document.execCommand('redo')"
+                  data-bs-toggle="tooltip" title="Refazer">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+
+              </div>
+              <div class="card-body p-0">
+                <div class="editor-split">
+                  <textarea name="post_content" id="e-content" class="form-control" placeholder="Escreve em Markdown..."
+                    oninput="updatePreview()"><%= post ? post.post_content : '' %></textarea>
+                  <div>
+                    <div class="preview-label px-3 pt-3"><i class="bi bi-eye me-1"></i>Pré-visualização</div>
+                    <div class="preview-pane" id="e-preview"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Excerto -->
+            <div class="card mb-3">
+              <div class="card-header">Excerto</div>
+              <div class="card-body">
+                <textarea name="post_excerpt" class="form-control border-0 p-0" placeholder="Resumo curto do post..."
+                  style="min-height:70px;resize:none;box-shadow:none"><%= post ? (post.post_excerpt || '') : '' %></textarea>
+              </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════════════════════════════════ -->
+            <!-- CUSTOM FIELDS DINÂMICOS -->
+            <!-- ══════════════════════════════════════════════════════════════════════════ -->
+            <!--<% if (typeof fieldGroups !== 'undefined' && fieldGroups && fieldGroups.length) { %>
+      <% fieldGroups.forEach(function(group) { %>
+        <div class="card mb-3">
+          <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-sliders" style="color:var(--accent2)"></i>
+            <span style="font-family:'DM Serif Display',serif"><%= group.name %></span>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              <% if (group.fields && group.fields.length) { %>
+                <% group.fields.forEach(function(field) { %>
+                  <div class="<%= field.type === 'textarea' ? 'col-12' : 'col-sm-6' %>">
+                    <label class="form-label">
+                      <%= field.label %>
+                      <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--text2);text-transform:lowercase;letter-spacing:0;margin-left:4px"><%= field.type %></span>
+                    </label>
+
+                    <% if (field.type === 'textarea') { %>
+                      <textarea name="meta_<%= field.id %>" class="form-control"
+                        style="min-height:100px"><%= field.value || '' %></textarea>
+
+                    <% } else if (field.type === 'checkbox') { %>
+                      <div class="form-check mt-1">
+                        <input type="hidden" name="meta_<%= field.id %>" value="0">
+                        <input type="checkbox" name="meta_<%= field.id %>" value="1"
+                          class="form-check-input" id="field_<%= field.id %>"
+                          <%= field.value == '1' ? 'checked' : '' %>>
+                        <label class="form-check-label" for="field_<%= field.id %>">Ativo</label>
+                      </div>
+
+                    <% } else if (field.type === 'select' && field.options) { %>
+                      <select name="meta_<%= field.id %>" class="form-select">
+                        <option value="">Selecione...</option>
+                        <% field.options.split(',').forEach(function(opt) { %>
+                          <option value="<%= opt.trim() %>" <%= field.value === opt.trim() ? 'selected' : '' %>><%= opt.trim() %></option>
+                        <% }) %>
+                      </select>
+
+                    <% } else { %>
+                      <input type="<%= ['url', 'image', 'file'].includes(field.type) ? 'url' : field.type %>"
+                        name="meta_<%= field.id %>"
+                        class="form-control"
+                        value="<%= field.value || '' %>"
+                        placeholder="<%= ['url', 'image', 'file'].includes(field.type) ? 'https://...' : '' %>">
+                    <% } %>
+                  </div>
+                <% }) %>
+              <% } else { %>
+                <div class="col-12 text-muted text-center py-3">
+                  <small>Este grupo não tem campos definidos.</small>
+                </div>
+              <% } %>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      <% }) %>
+    <% } %>-->
 
-    <div class="card">
-      <div class="card-header">Excerto</div>
-      <div class="card-body">
-        <textarea name="post_excerpt" class="form-control border-0 p-0"
-          placeholder="Resumo curto do post..."
-          style="min-height:80px;resize:none;box-shadow:none"><%= post ? post.post_excerpt : '' %></textarea>
-      </div>
-    </div>
-  </div>
+          </div>
 
-  <div class="col-lg-4 d-flex flex-column gap-3">
+          <!-- ══════════════════════════════════════════════════════════════════════════ -->
+          <!-- COLUNA LATERAL (Metadados e Ações) -->
+          <!-- ══════════════════════════════════════════════════════════════════════════ -->
+          <div class="col-lg-4 d-flex flex-column gap-3">
 
-    <div class="card">
-      <div class="card-header">Publicação</div>
-      <div class="card-body d-flex flex-column gap-2">
-        <button type="submit" name="action" value="publish" class="btn btn-success">
-          <i class="bi bi-check-lg me-1"></i> Publicar
-        </button>
-        <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">
-          <i class="bi bi-save me-1"></i> Guardar Rascunho
-        </button>
-        <% if (isEdit && post && post.post_status === 'publish') { %>
-          <!--<a href="/<%= postType === 'page' ? 'page' : 'post' %>/<%= post.post_name %>"
+            <!-- Publicação -->
+            <div class="card">
+              <div class="card-header">Publicação</div>
+              <div class="card-body d-flex flex-column gap-2">
+                <button type="submit" name="action" value="publish" class="btn btn-success">
+                  <i class="bi bi-check-lg me-1"></i> Publicar
+                </button>
+                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">
+                  <i class="bi bi-save me-1"></i> Guardar Rascunho
+                </button>
+                <% if (typeof isEdit !=='undefined' && isEdit && post && post.post_status==='publish' ) { %>
+                  <!--<a href="/<%= postType === 'page' ? 'page' : 'post' %>/<%= post.post_name %>"
             target="_blank" class="btn btn-outline-primary">
             <i class="bi bi-box-arrow-up-right me-1"></i> Ver no site
           </a>-->
-          <a href=""
-            target="" class="btn btn-outline-primary">
-          <i class="bi bi-box-arrow-up-right me-1"></i> Ver no site
-          </a>
-        <% } %>
-      </div>
-    </div>
+                  <a href="" target="" class="btn btn-outline-primary">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> Ver no site
+                  </a>
+                  <% } %>
+              </div>
+            </div>
 
-    <div class="card">
-      <div class="card-header">Detalhes</div>
-      <div class="card-body">
-        <div class="mb-3">
-          <label class="form-label">Estado</label>
-          <select name="post_status" class="form-select">
-            <option value="draft" <%= !post || post.post_status === 'draft' ? 'selected' : '' %>>Rascunho</option>
-            <option value="publish" <%= post && post.post_status === 'publish' ? 'selected' : '' %>>Publicado</option>
-            <option value="private" <%= post && post.post_status === 'private' ? 'selected' : '' %>>Privado</option>
-          </select>
-        </div>
-        <div>
-          <label class="form-label">Data</label>
-          <input type="date" name="post_date" class="form-control"
-            value="<%= post ? new Date(post.post_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0] %>">
-        </div>
-      </div>
-    </div>
+            <!-- Detalhes -->
+            <div class="card">
+              <div class="card-header">Detalhes</div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label">Estado</label>
+                  <select name="post_status" class="form-select">
+                    <option value="draft" <%=!post || post.post_status==='draft' ? 'selected' : '' %>>Rascunho</option>
+                    <option value="publish" <%=post && post.post_status==='publish' ? 'selected' : '' %>>Publicado
+                    </option>
+                    <option value="private" <%=post && post.post_status==='private' ? 'selected' : '' %>>Privado
+                    </option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">Data</label>
+                  <input type="date" name="post_date" class="form-control"
+                    value="<%= post && post.post_date ? new Date(post.post_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0] %>">
+                </div>
+              </div>
+            </div>
 
-    <div class="card">
-      <div class="card-header">URL (Slug)</div>
-      <div class="card-body">
-        <input type="text" name="post_name" id="e-slug" class="form-control"
-          value="<%= post ? post.post_name : '' %>" placeholder="url-do-post">
-        <div class="form-text" id="slug-preview">/<%= post ? post.post_name : '' %></div>
-      </div>
-    </div>
+            <!-- URL Slug -->
+            <div class="card">
+              <div class="card-header">URL (Slug)</div>
+              <div class="card-body">
+                <input type="text" name="post_name" id="e-slug" class="form-control"
+                  value="<%= post ? post.post_name : '' %>" placeholder="url-do-post">
+                <div class="form-text" id="slug-preview">/<%= post ? post.post_name : '' %>
+                </div>
+              </div>
+            </div>
 
-    <% if (isEdit && post) { %>
+            <!-- ══════════════════════════════════════════════════════════════════════════ -->
+            <!-- TAXONOMIAS (Termos/Categorias) -->
+            <!-- ══════════════════════════════════════════════════════════════════════════ -->
+            <!--<% if (typeof allTerms !== 'undefined' && allTerms && allTerms.length) { %>
+      <%
+        // Agrupar termos por categoria para organização visual
+        const termsByCategory = {};
+        allTerms.forEach(function(t) {
+          const catName = t.category_name || 'Sem Categoria';
+          if (!termsByCategory[catName]) {
+            termsByCategory[catName] = [];
+          }
+          termsByCategory[catName].push(t);
+        });
+      %>
       <div class="card">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <span>Taxonomias</span>
+          <a href="/admin/terms/new" target="_blank" 
+            class="btn btn-sm btn-outline-secondary" 
+            style="padding:2px 8px;font-size:10px"
+            title="Adicionar novo termo">
+            <i class="bi bi-plus-lg"></i>
+          </a>
+        </div>
         <div class="card-body">
-          <div class="text-muted mb-2">ID: #<%= post.ID %></div>
-          <form method="POST"
-            action="/admin/<%= postType === 'page' ? 'pages' : 'posts' %>/<%= post.ID %>/delete"
-            onsubmit="return confirm('Apagar permanentemente?')">
-            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
-              <i class="bi bi-trash me-1"></i> Apagar <%= postType === 'page' ? 'Página' : 'Post' %>
-            </button>
-          </form>
+          <% Object.entries(termsByCategory).forEach(function([catName, terms]) { %>
+            <div class="mb-3">
+              <div class="form-label" style="color:var(--accent2);font-size:13px;font-weight:500">
+                <%= catName %>
+              </div>
+              <div class="d-flex flex-column gap-1">
+                <% terms.forEach(function(t) { %>
+                  <div class="form-check">
+                    <input type="checkbox" name="term_ids[]" value="<%= t.id %>"
+                      class="form-check-input" id="term_<%= t.id %>"
+                      <%= (typeof selectedTermIds !== 'undefined' && selectedTermIds && selectedTermIds.includes(t.id)) ? 'checked' : '' %>>
+                    <label class="form-check-label" for="term_<%= t.id %>"
+                      style="font-size:13px"><%= t.name %></label>
+                  </div>
+                <% }) %>
+              </div>
+            </div>
+          <% }) %>
         </div>
       </div>
-    <% } %>
+    <% } %>-->
 
-  </div>
-</div>
-</form>
+            <!-- Apagar Post -->
+            <% if (typeof isEdit !=='undefined' && isEdit && post) { %>
+              <% // Preparar mensagem de confirmação const itemType=postType==='page' ? 'página' : 'post' ; const
+                confirmMsg=`Apagar permanentemente esta ${itemType}? Esta ação não pode ser revertida.`; %>
+                <div class="card">
+                  <div class="card-body">
+                    <div class="text-muted mb-2" style="font-size:12px">
+                      ID: <span style="font-family:'DM Mono',monospace">#<%= post.ID %></span>
+                    </div>
+                    <form method="POST"
+                      action="/admin/<%= postType === 'page' ? 'pages' : 'posts' %>/<%= post.ID %>/delete"
+                      onsubmit="return confirm('<%= confirmMsg %>')">
+                      <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                        <i class="bi bi-trash me-1"></i> Apagar <%= postType==='page' ? 'Página' : 'Post' %>
+                      </button>
+                    </form>
+                  </div>
+                </div>
+                <% } %>
 
-<%- include('../partials/admin-layout-end') %>
+          </div>
+        </div>
+      </form>
+
+      <%- include('../partials/admin-layout-end') %>

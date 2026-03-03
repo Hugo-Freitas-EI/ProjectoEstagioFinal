@@ -97,4 +97,10 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Register.js
+Register.hasMany(Post, {
+  foreignKey: 'post_author',
+  as: 'posts'
+});
+
 module.exports = router;

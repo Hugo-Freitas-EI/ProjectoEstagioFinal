@@ -1,9 +1,10 @@
 require('dotenv').config();
 const express = require('express');
-const session = require('express-session');
-const cookieParser = require('cookie-parser');
 const path = require('path');
-const flash = require('./middleware/flash');
+const cookieParser = require('cookie-parser');
+const session = require('express-session');
+const flashMiddleware = require('./middleware/flash'); // SEM './cms/' porque já está dentro de cms
+const mediaRoutes = require('./routes/media');
 
 const app = express();
 
@@ -16,12 +17,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'nodecms_secret',
+  secret: 'seu-secret-key-aqui',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 }
+  cookie: { 
+    secure: false, // true apenas se usar HTTPS
+    maxAge: 24 * 60 * 60 * 1000 // 24 horas
+  }
 }));
-app.use(flash);
+
+// Configurar sessão ANTES do flash
+app.use(session({
+  secret: 'seu-secret-key-aqui',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: false,
+    maxAge: 24 * 60 * 60 * 1000
+  }
+}));
+
+// Configurar flash middleware
+app.use(flashMiddleware);
 
 // Variáveis globais para todas as views
 app.use(function(req, res, next) {
@@ -40,6 +57,7 @@ app.use('/js', express.static(path.join(__dirname, 'public/js')));
 app.use('/admin', require('./routes/auth'));
 app.use('/admin', require('./routes/admin'));
 app.use('/', require('./routes/frontend'));
+app.use('/admin/media', mediaRoutes);
 
 // 404
 app.use(function(req, res) {
@@ -54,6 +72,6 @@ app.use(function(err, req, res, next) {
 
 var PORT = process.env.PORT || 3001;
 app.listen(PORT, function() {
-  console.log('NodeCMS a correr em http://localhost:' + PORT);
+  //console.log('NodeCMS a correr em http://localhost:' + PORT);
   console.log('Admin: http://localhost:' + PORT + '/admin');
 });
