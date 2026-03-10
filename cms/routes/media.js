@@ -43,9 +43,14 @@ const upload = multer({
 // =============================
 router.get('/', async (req, res) => {
   try {
-    const [media] = await db.query(
-      'SELECT * FROM media ORDER BY data_upload DESC'
-    );
+    const [media] = await db.query(`
+      SELECT 
+        m.*,
+        r.username
+      FROM media m
+      LEFT JOIN registers r ON m.autor_id = r.id
+      ORDER BY m.data_upload DESC
+    `);
 
     res.render('admin/media', {
       files: media
@@ -62,37 +67,35 @@ router.get('/', async (req, res) => {
 // POST - UPLOAD
 // =============================
 router.post('/upload', upload.single('file'), async (req, res) => {
-  console.log("UPLOAD ATINGIDO");
-  console.log("FILE:", req.file);
-  console.log("BODY:", req.body);
-  console.log("USER:", req.user);
-  
   if (!req.file) return res.redirect('/admin/media');
 
   try {
-    const now = new Date();
     const titulo = req.file.originalname;
     const ficheiroUrl = `/uploads/${req.file.filename}`;
 
+    // Verificação segura do ID do utilizador
+    const autorId = (req.user && req.user.id) ? req.user.id : null;
+
+    // Usamos o NOW() nativo do MySQL em vez do new Date() do JavaScript
+    // para garantir que não há erros de formatação na coluna DATETIME
     await db.query(
       `INSERT INTO media 
        (titulo, ficheiro_url, mime_type, data_upload, autor_id, parent_id) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, NOW(), ?, ?)`,
       [
         titulo,
         ficheiroUrl,
         req.file.mimetype,
-        now,
-        req.user?.id || null,
+        autorId,
         null
       ]
     );
 
-    console.log("INSERT OK");
     res.redirect('/admin/media');
 
   } catch (error) {
     console.error("ERRO NO INSERT:", error);
+    // Se o insert falhar na base de dados, apagamos a imagem que fez upload
     if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     res.redirect('/admin/media');
   }
@@ -102,13 +105,8 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 // POST - DELETE (CORRIGIDO)
 // =============================
 router.post('/:id/delete', async (req, res) => {
-
   try {
-
-    const [rows] = await db.query(
-      'SELECT * FROM media WHERE id = ?',
-      [req.params.id]
-    );
+    const [rows] = await db.query('SELECT * FROM media WHERE id = ?', [req.params.id]);
 
     if (rows.length === 0) {
       return res.redirect('/admin/media');
@@ -116,11 +114,10 @@ router.post('/:id/delete', async (req, res) => {
 
     const media = rows[0];
 
-    const filepath = path.join(
-      __dirname,
-      '../public',
-      media.ficheiro_url.replace('/uploads/', 'uploads/')
-    );
+    // CORREÇÃO: Remover a primeira barra "/" do ficheiro_url para que o path.join 
+    // não se confunda e saiba construir o caminho corretamente em qualquer sistema
+    const caminhoRelativo = media.ficheiro_url.replace(/^\//, '');
+    const filepath = path.join(__dirname, '../public', caminhoRelativo);
 
     await db.query('DELETE FROM media WHERE id = ?', [req.params.id]);
 
@@ -132,6 +129,25 @@ router.post('/:id/delete', async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao apagar media:', error);
+    res.redirect('/admin/media');
+  }
+});
+
+// =============================
+// POST - UPDATE (NOVO)
+// =============================
+router.post('/:id/update', async (req, res) => {
+  try {
+    const { titulo, altText, caption, description } = req.body;
+
+    await db.query(
+      `UPDATE media SET titulo = ?, altText = ?, caption = ?, description = ? WHERE id = ?`,
+      [titulo, altText || null, caption || null, description || null, req.params.id]
+    );
+
+    res.redirect('/admin/media');
+  } catch (error) {
+    console.error('Erro ao atualizar media:', error);
     res.redirect('/admin/media');
   }
 });

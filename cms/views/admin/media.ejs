@@ -4,20 +4,17 @@
     <span class="text-muted">
       <%= files.length %> ficheiro(s)
     </span>
-    <!--<form method="POST" action="/admin/media/upload" enctype="multipart/form-data" id="upload-form">
+
+    <form method="POST" action="/admin/media/upload" enctype="multipart/form-data" id="upload-form">
       <input type="file" name="file" id="file-input" accept="image/*,application/pdf" style="display:none"
         onchange="this.form.submit()">
       <button type="button" class="btn btn-sm btn-primary" onclick="document.getElementById('file-input').click()">
         <i class="bi bi-upload me-1"></i> Carregar Ficheiro
       </button>
-    </form>-->
-    <form method="POST" action="/admin/media/upload" enctype="multipart/form-data">
-      <input type="file" name="file" />
-      <button type="submit">Carregar</button>
     </form>
   </div>
 
-  <% if (files.length===0) { %>
+  <% if (files.length === 0) { %>
     <div class="card">
       <div class="card-body text-center py-5">
         <i class="bi bi-folder2-open d-block mb-3" style="font-size:3rem;opacity:.3"></i>
@@ -27,60 +24,222 @@
         </button>
       </div>
     </div>
-    <% } else { %>
-      <div class="row g-3">
-        <% files.forEach(function(f) { %>
-          <div class="col-6 col-sm-4 col-md-3 col-xl-2">
-            <div class="card media-card">
-              <% if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(f.titulo)) { %>
-                <img src="<%= f.ficheiro_url %>" class="card-img-top" style="height:90px;object-fit:cover"
-                  loading="lazy" alt="<%= f.titulo %>">
-                <% } else { %>
-                  <div class="card-img-top d-flex align-items-center justify-content-center"
-                    style="height:90px;font-size:2rem;background:var(--bg)">📄</div>
-                  <% } %>
-                    <div class="media-name" title="<%= f.titulo %>">
-                      <%= f.titulo %>
-                    </div>
-                    <div class="p-2 d-flex gap-1">
-                      <button class="btn btn-sm btn-outline-secondary flex-fill"
-                        onclick="copyToClipboard('<%= f.ficheiro_url %>', this)" title="Copiar URL">
-                        <i class="bi bi-clipboard"></i>
-                      </button>
-                      <!--<form method="POST" action="/admin/media/<%= f.id %>/delete"
-                        onsubmit="return confirm('Apagar <%= f.titulo %>?')" class="flex-fill">
-                        <button type="submit" class="btn btn-sm btn-outline-danger w-100" title="Apagar">
-                          <i class="bi bi-trash"></i>
-                        </button>
-                      </form>-->
-                      <form method="POST" action="/admin/media/<%= f.id %>/delete">
-                        <button type="submit">Apagar</button>
-                      </form>
-                    </div>
+  <% } else { %>
+    <div class="row g-3">
+      <% files.forEach(function(f) { %>
+        <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+          <div class="card media-card shadow-sm h-100" style="cursor:pointer" data-id="<%= f.id %>" onclick="abrirDetalhes(this.dataset.id)">
+            <% if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(f.titulo)) { %>
+              <img src="<%= f.ficheiro_url %>" class="card-img-top" style="height:120px;object-fit:cover"
+                loading="lazy" alt="<%= f.titulo %>">
+            <% } else { %>
+              <div class="card-img-top d-flex align-items-center justify-content-center"
+                style="height:120px;font-size:3rem;background:var(--bs-gray-100)">📄</div>
+            <% } %>
+            <div class="card-body p-2 border-top">
+              <div class="text-truncate small" title="<%= f.titulo %>">
+                <%= f.titulo %>
+              </div>
             </div>
           </div>
-          <% }) %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <% if (files.length > 0) { %>
+    <script id="dados-media-json" type="application/json">
+      <%- JSON.stringify(files) %>
+    </script>
+  <% } %>
+
+  <!-- Offcanvas lateral com estilo do editor de posts -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="detalhesOffcanvas" style="width: 480px; background-color: #1a1d20;">
+    <div class="offcanvas-header border-bottom" style="background-color: #1a1d20; border-color: #2d3135 !important;">
+      <h5 class="offcanvas-title fw-bold text-white">Detalhes do anexo</h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body p-0" style="background-color: #0d0f10;">
+
+      <!-- Preview - Estilo card do editor -->
+      <div class="card mb-3 mx-3 mt-3">
+        <div class="card-body p-4 text-center" style="min-height: 250px; display: flex; align-items: center; justify-content: center; background-color: #1a1d20;">
+          <img id="detalhe-img" src="" class="img-fluid d-none" style="max-height: 200px; object-fit: contain;">
+          <div id="detalhe-icon" class="d-none text-muted" style="font-size: 6rem;">📄</div>
+        </div>
       </div>
-      <% } %>
 
-        <script>
-          function copyToClipboard(text, btn) {
-            if (navigator.clipboard) {
-              navigator.clipboard.writeText(text).then(function () {
-                var icon = btn.querySelector('i');
-                if (icon) {
-                  icon.className = 'bi bi-check';
-                  setTimeout(function () {
-                    icon.className = 'bi bi-clipboard';
-                  }, 1500);
-                }
-              }).catch(function () {
-                alert('URL: ' + text);
-              });
-            } else {
-              alert('URL: ' + text);
-            }
-          }
-        </script>
+      <!-- Informações - Estilo card do editor -->
+      <div class="card mb-3 mx-3 bg-dark text-white">
+        <div class="card-header" style="background-color: #1a1d20; border-color: #2d3135;">Informações</div>
+        <div class="card-body" style="background-color: #1a1d20;">
+          <div class="small text-muted">
+            <div class="mb-2"><strong class="text-white-50">Carregado em:</strong> <span id="detalhe-data"></span></div>
+            <div class="mb-2"><strong class="text-white-50">Carregado por:</strong> <span id="detalhe-autor"></span></div>
+            <div class="mb-2"><strong class="text-white-50">Nome do ficheiro:</strong> <span id="detalhe-nome" class="text-break"></span></div>
+            <div><strong class="text-white-50">Tipo de ficheiro:</strong> <span id="detalhe-tipo"></span></div>
+          </div>
+        </div>
+      </div>
 
-        <%- include('../partials/admin-layout-end') %>
+      <!-- Formulário de edição - Estilo cards do editor -->
+      <form id="form-editar" method="POST" action="">
+        
+        <!-- Título -->
+        <div class="card mb-3 mx-3 bg-dark text-white">
+          <div class="card-header" style="background-color: #1a1d20; border-color: #2d3135;">Título</div>
+          <div class="card-body" style="background-color: #1a1d20;">
+            <input type="text" id="input-titulo" name="titulo" class="form-control bg-dark text-white border-secondary" placeholder="Nome do ficheiro...">
+          </div>
+        </div>
+
+        <!-- Texto alternativo -->
+        <div class="card mb-3 mx-3 bg-dark text-white">
+          <div class="card-header" style="background-color: #1a1d20; border-color: #2d3135;">Texto alternativo</div>
+          <div class="card-body" style="background-color: #1a1d20;">
+            <textarea id="input-alt" name="altText" class="form-control bg-dark text-white border-secondary" rows="2" 
+                      placeholder="Deixe em branco caso a imagem seja meramente decorativa."></textarea>
+            <div class="form-text text-muted">Descreva a imagem para acessibilidade (leitores de ecrã).</div>
+          </div>
+        </div>
+
+        <!-- Legenda -->
+        <div class="card mb-3 mx-3 bg-dark text-white">
+          <div class="card-header" style="background-color: #1a1d20; border-color: #2d3135;">Legenda</div>
+          <div class="card-body" style="background-color: #1a1d20;">
+            <textarea id="input-legenda" name="caption" class="form-control bg-dark text-white border-secondary" rows="2" 
+                      placeholder="Legenda visível da imagem..."></textarea>
+          </div>
+        </div>
+
+        <!-- Descrição -->
+        <div class="card mb-3 mx-3 bg-dark text-white">
+          <div class="card-header" style="background-color: #1a1d20; border-color: #2d3135;">Descrição</div>
+          <div class="card-body" style="background-color: #1a1d20;">
+            <textarea id="input-descricao" name="description" class="form-control bg-dark text-white border-secondary" rows="3" 
+                      placeholder="Descrição detalhada do ficheiro..."></textarea>
+          </div>
+        </div>
+
+        <!-- URL do ficheiro -->
+        <div class="card mb-3 mx-3 bg-dark text-white">
+          <div class="card-header" style="background-color: #1a1d20; border-color: #2d3135;">URL do ficheiro</div>
+          <div class="card-body" style="background-color: #1a1d20;">
+            <div class="input-group">
+              <input type="text" id="detalhe-url" class="form-control bg-dark text-white border-secondary" readonly>
+              <button class="btn btn-outline-secondary" type="button" onclick="copiarURLOffcanvas()" title="Copiar URL">
+                <i class="bi bi-clipboard" id="icon-offcanvas"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botões de ação - Estilo do editor -->
+        <div class="card mb-3 mx-3 bg-dark text-white">
+          <div class="card-header" style="background-color: #1a1d20; border-color: #2d3135;">Ações</div>
+          <div class="card-body d-flex flex-column gap-2" style="background-color: #1a1d20;">
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-check-lg me-1"></i> Atualizar
+            </button>
+          </div>
+        </div>
+
+      </form>
+
+      <!-- Apagar ficheiro - Estilo do editor -->
+      <div class="card mb-3 mx-3 bg-dark text-white">
+        <div class="card-body" style="background-color: #1a1d20;">
+          <h5 class="card-title text-danger">Apagar ficheiro</h5>
+          <p class="text-muted mb-3">Esta ação não pode ser revertida.</p>
+          <form id="form-delete" method="POST" action="" 
+                onsubmit="return confirm('Tem a certeza que deseja eliminar permanentemente este ficheiro?')">
+            <button type="submit" class="btn btn-danger">
+              <i class="bi bi-trash me-1"></i> Eliminar permanentemente
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // 1. Carregar os dados do JSON invisível gerado pelo EJS
+    window.mediaData = {};
+    var jsonElement = document.getElementById('dados-media-json');
+    if (jsonElement && jsonElement.textContent) {
+      try {
+        var filesArray = JSON.parse(jsonElement.textContent);
+        filesArray.forEach(function (f) {
+          window.mediaData[f.id] = f;
+        });
+      } catch (e) {
+        console.error("Erro ao analisar os dados de media:", e);
+      }
+    }
+
+    function abrirDetalhes(mediaId) {
+      var media = window.mediaData[mediaId];
+      if (!media) return;
+
+      // Preview
+      var imgEl = document.getElementById('detalhe-img');
+      var iconEl = document.getElementById('detalhe-icon');
+
+      if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(media.titulo)) {
+        imgEl.src = media.ficheiro_url;
+        imgEl.classList.remove('d-none');
+        iconEl.classList.add('d-none');
+      } else {
+        imgEl.classList.add('d-none');
+        iconEl.classList.remove('d-none');
+      }
+
+      // Dados
+      var dataFormatada = new Date(media.data_upload).toLocaleDateString('pt-PT', {
+        year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
+      document.getElementById('detalhe-data').textContent = dataFormatada;
+      document.getElementById('detalhe-autor').textContent = media.username || 'Sem autor';
+      document.getElementById('detalhe-nome').textContent = media.titulo;
+      document.getElementById('detalhe-tipo').textContent = media.mime_type;
+      document.getElementById('detalhe-url').value = media.ficheiro_url;
+
+      // Preencher formulário com dados existentes
+      document.getElementById('input-titulo').value = media.titulo || '';
+      document.getElementById('input-alt').value = media.altText || '';
+      document.getElementById('input-legenda').value = media.caption || '';
+      document.getElementById('input-descricao').value = media.description || '';
+
+      // Actions
+      document.getElementById('form-editar').action = '/admin/media/' + mediaId + '/update';
+      document.getElementById('form-delete').action = '/admin/media/' + mediaId + '/delete';
+
+      // Abrir offcanvas
+      var offcanvas = new bootstrap.Offcanvas(document.getElementById('detalhesOffcanvas'));
+      offcanvas.show();
+    }
+
+    function copiarURLOffcanvas() {
+      var inputUrl = document.getElementById('detalhe-url');
+      var iconEl = document.getElementById('icon-offcanvas');
+
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(inputUrl.value).then(function () {
+          iconEl.className = 'bi bi-check-lg text-success';
+          setTimeout(function () {
+            iconEl.className = 'bi bi-clipboard';
+          }, 1500);
+        }).catch(function () {
+          inputUrl.select();
+          document.execCommand('copy');
+          iconEl.className = 'bi bi-check-lg text-success';
+          setTimeout(function () {
+            iconEl.className = 'bi bi-clipboard';
+          }, 1500);
+        });
+      }
+    }
+  </script>
+
+<%- include('../partials/admin-layout-end') %>

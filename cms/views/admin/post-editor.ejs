@@ -372,24 +372,25 @@
     <% } %>-->
 
             <!-- Apagar Post -->
-            <% if (typeof isEdit !=='undefined' && isEdit && post) { %>
-              <% // Preparar mensagem de confirmação const itemType=postType==='page' ? 'página' : 'post' ; const
-                confirmMsg=`Apagar permanentemente esta ${itemType}? Esta ação não pode ser revertida.`; %>
-                <div class="card">
-                  <div class="card-body">
-                    <div class="text-muted mb-2" style="font-size:12px">
-                      ID: <span style="font-family:'DM Mono',monospace">#<%= post.ID %></span>
-                    </div>
-                    <form method="POST"
-                      action="/admin/<%= postType === 'page' ? 'pages' : 'posts' %>/<%= post.ID %>/delete"
-                      onsubmit="return confirm('<%= confirmMsg %>')">
-                      <button type="submit" class="btn btn-sm btn-outline-danger w-100">
-                        <i class="bi bi-trash me-1"></i> Apagar <%= postType==='page' ? 'Página' : 'Post' %>
-                      </button>
-                    </form>
-                  </div>
+            <% if (typeof isEdit !== 'undefined' && isEdit && post) { %>
+              <% 
+                // Preparar mensagem de confirmação
+                var itemType = postType === 'page' ? 'página' : 'post';
+                var confirmMsg = 'Apagar permanentemente esta ' + itemType + '? Esta ação não pode ser revertida.';
+              %>
+              <div class="card">
+                <div class="card-body">
+                  <h5 class="card-title text-danger">Apagar <%= itemType %></h5>
+                  <p class="text-muted mb-3">
+                  </p>
+                  <form method="POST" action="/admin/posts/<%= post.id %>/delete" onsubmit="return confirm('<%= confirmMsg %>')">
+                    <button type="submit" class="btn btn-danger">
+                      <i class="bi bi-trash me-1"></i> Apagar <%= itemType %>
+                    </button>
+                  </form>
                 </div>
-                <% } %>
+              </div>
+            <% } %>
 
           </div>
         </div>
