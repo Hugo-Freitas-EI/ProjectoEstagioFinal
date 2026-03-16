@@ -9,9 +9,6 @@
       <form method="POST" action="<%= formAction %>">
         <div class="row g-3">
 
-          <!-- ══════════════════════════════════════════════════════════════════════════ -->
-          <!-- COLUNA PRINCIPAL (Editor de Conteúdo) -->
-          <!-- ══════════════════════════════════════════════════════════════════════════ -->
           <div class="col-lg-8">
 
             <!-- Título -->
@@ -24,94 +21,18 @@
               </div>
             </div>
 
-            <!--Markdon function-->
             <script>
-              function toggleWrap(marker) {
-                const textarea = document.getElementById("e-content");
-                const start = textarea.selectionStart;
-                const end = textarea.selectionEnd;
-                const value = textarea.value;
-                const selected = value.substring(start, end);
-
-                if (!selected) return;
-
-                const before = marker;
-                const after = marker;
-
-                if (
-                  selected.startsWith(before) &&
-                  selected.endsWith(after)
-                ) {
-                  // REMOVE
-                  const unwrapped = selected.slice(
-                    before.length,
-                    selected.length - after.length
-                  );
-
-                  textarea.value =
-                    value.substring(0, start) +
-                    unwrapped +
-                    value.substring(end);
-
-                  textarea.setSelectionRange(start, start + unwrapped.length);
-                } else {
-                  // ADD
-                  const wrapped = before + selected + after;
-
-                  textarea.value =
-                    value.substring(0, start) +
-                    wrapped +
-                    value.substring(end);
-
-                  textarea.setSelectionRange(start, start + wrapped.length);
-                }
-
-                textarea.focus();
-                updatePreview();
+              function aplicarFormato(comando, valor = null) {
+                document.execCommand(comando, false, valor);
+                document.getElementById('editor-visual').focus();
+                sincronizarEditor();
               }
 
-              function toggleLinePrefix(prefix) {
-                const textarea = document.getElementById("e-content");
-                const start = textarea.selectionStart;
-                const end = textarea.selectionEnd;
-                const value = textarea.value;
-
-                const beforeSelection = value.substring(0, start);
-                const selection = value.substring(start, end);
-                const afterSelection = value.substring(end);
-
-                const lines = selection.split("\n");
-
-                const allHavePrefix = lines.every(line =>
-                  line.startsWith(prefix)
-                );
-
-                const newLines = lines.map(line => {
-                  if (allHavePrefix) {
-                    // REMOVE prefix
-                    return line.startsWith(prefix)
-                      ? line.slice(prefix.length)
-                      : line;
-                  } else {
-                    // ADD prefix
-                    return prefix + line;
-                  }
-                });
-
-                const newSelection = newLines.join("\n");
-
-                textarea.value =
-                  beforeSelection +
-                  newSelection +
-                  afterSelection;
-
-                textarea.setSelectionRange(
-                  start,
-                  start + newSelection.length
-                );
-
-                textarea.focus();
-                updatePreview();
+              function inserirLink() {
+                const url = prompt("Insira o URL do link:");
+                if (url) {
+                  aplicarFormato('createLink', url);
+                }
               }
 
               document.addEventListener("DOMContentLoaded", function () {
@@ -119,91 +40,219 @@
                 tooltipTriggerList.forEach(function (tooltipTriggerEl) {
                   new bootstrap.Tooltip(tooltipTriggerEl);
                 });
+
+                // Sincronizar qualquer alteração no visual com a textarea invisível
+                document.getElementById('editor-visual').addEventListener('input', sincronizarEditor);
               });
 
+              function sincronizarEditor() {
+                const html = document.getElementById('editor-visual').innerHTML;
+                document.getElementById('e-content').value = (html || '').trim();
+              }
+
+              // Lógica da Pré-visualização
+              let isPreviewMode = false;
+              function togglePreview() {
+                const editor = document.getElementById('editor-visual');
+                const preview = document.getElementById('preview-visual');
+                const btn = document.getElementById('btn-preview');
+                const toolbars = document.querySelectorAll('.toolbar-btn');
+
+                isPreviewMode = !isPreviewMode;
+
+                if (isPreviewMode) {
+                  // Copia o HTML atual para a janela de pré-visualização
+                  preview.innerHTML = editor.innerHTML;
+
+                  // Esconde o editor e mostra a pré-visualização
+                  editor.classList.add('d-none');
+                  preview.classList.remove('d-none');
+
+                  // Desativa os botões de formatação
+                  toolbars.forEach(b => b.classList.add('disabled'));
+
+                  // Muda o aspeto do botão
+                  btn.innerHTML = '<i class="bi bi-pencil me-1"></i> Voltar ao Editor';
+                  btn.classList.replace('btn-outline-secondary', 'btn-primary');
+                } else {
+                  // Mostra o editor e esconde a pré-visualização
+                  editor.classList.remove('d-none');
+                  preview.classList.add('d-none');
+
+                  // Reativa os botões de formatação
+                  toolbars.forEach(b => b.classList.remove('disabled'));
+
+                  // Muda o aspeto do botão de volta
+                  btn.innerHTML = '<i class="bi bi-eye me-1"></i> Pré-visualização';
+                  btn.classList.replace('btn-primary', 'btn-outline-secondary');
+                  editor.focus();
+                }
+              }
             </script>
-            <!-- Editor Markdown -->
+
+            <!-- Editor WYSIWYG -->
             <div class="card mb-3">
               <div class="card-header d-flex align-items-center gap-1 flex-wrap py-2">
-                <button type="button" class="toolbar-btn" onclick="toggleWrap('**')" data-bs-toggle="tooltip"
+                <button type="button" class="toolbar-btn" onclick="aplicarFormato('bold')" data-bs-toggle="tooltip"
                   title="Negrito (Ctrl+B)">
                   <strong>B</strong>
                 </button>
-                <button type="button" class="toolbar-btn" onclick="toggleWrap('*')" data-bs-toggle="tooltip"
+                <button type="button" class="toolbar-btn" onclick="aplicarFormato('italic')" data-bs-toggle="tooltip"
                   title="Itálico (Ctrl+I)">
                   <em>I</em>
                 </button>
-                <button type="button" class="toolbar-btn" onclick="toggleLinePrefix('# ')" data-bs-toggle="tooltip"
-                  title="Título H1">
+
+                <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
+
+                <button type="button" class="toolbar-btn" onclick="aplicarFormato('formatBlock', 'H1')"
+                  data-bs-toggle="tooltip" title="Título H1">
                   H1
                 </button>
-                <button type="button" class="toolbar-btn" onclick="toggleLinePrefix('## ')" data-bs-toggle="tooltip"
-                  title="Título H2">
+                <button type="button" class="toolbar-btn" onclick="aplicarFormato('formatBlock', 'H2')"
+                  data-bs-toggle="tooltip" title="Título H2">
                   H2
                 </button>
-                <button type="button" class="toolbar-btn" onclick="toggleLinePrefix('### ')" data-bs-toggle="tooltip"
-                  title="Título H3">
+                <button type="button" class="toolbar-btn" onclick="aplicarFormato('formatBlock', 'H3')"
+                  data-bs-toggle="tooltip" title="Título H3">
                   H3
                 </button>
-                <button type="button" class="toolbar-btn" onclick="toggleLinePrefix('- ')" data-bs-toggle="tooltip"
-                  title="Lista">
+
+                <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
+
+                <button type="button" class="toolbar-btn" onclick="aplicarFormato('insertUnorderedList')"
+                  data-bs-toggle="tooltip" title="Lista">
                   <i class="bi bi-list-ul"></i>
                 </button>
-                <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
-                <button type="button" class="toolbar-btn" onclick="insertMd('[texto](url)')" data-bs-toggle="tooltip"
-                  title="Inserir Link (Ctrl+K)">
+                <button type="button" class="toolbar-btn" onclick="inserirLink()" data-bs-toggle="tooltip"
+                  title="Inserir Link">
                   <i class="bi bi-link-45deg"></i>
                 </button>
-
-                <button type="button" class="toolbar-btn" onclick="insertMd('![alt](url)')" data-bs-toggle="tooltip"
-                  title="Inserir Imagem">
+                <button type="button" class="toolbar-btn" onclick="abrirBibliotecaMedia()" data-bs-toggle="tooltip"
+                  title="Inserir Imagem da Biblioteca">
                   <i class="bi bi-image"></i>
                 </button>
-                <button type="button" class="toolbar-btn" onclick="toggleWrap('`')" data-bs-toggle="tooltip"
-                  title="Código inline">
+
+                <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
+
+                <button type="button" class="toolbar-btn" onclick="aplicarFormato('formatBlock', 'PRE')"
+                  data-bs-toggle="tooltip" title="Código">
                   <i class="bi bi-code"></i>
                 </button>
-                <button type="button" class="toolbar-btn" onclick="toggleLinePrefix('> ')" data-bs-toggle="tooltip"
-                  title="Citação">
+                <button type="button" class="toolbar-btn" onclick="aplicarFormato('formatBlock', 'BLOCKQUOTE')"
+                  data-bs-toggle="tooltip" title="Citação">
                   <i class="bi bi-chat-quote"></i>
                 </button>
 
-                <button type="button" class="toolbar-btn" onclick="document.execCommand('undo')"
-                  data-bs-toggle="tooltip" title="Anular">
+                <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
+
+                <button type="button" class="toolbar-btn" onclick="aplicarFormato('undo')" data-bs-toggle="tooltip"
+                  title="Anular">
                   <i class="bi bi-arrow-counterclockwise"></i>
                 </button>
-
-                <button type="button" class="toolbar-btn" onclick="document.execCommand('redo')"
-                  data-bs-toggle="tooltip" title="Refazer">
+                <button type="button" class="toolbar-btn" onclick="aplicarFormato('redo')" data-bs-toggle="tooltip"
+                  title="Refazer">
                   <i class="bi bi-arrow-clockwise"></i>
                 </button>
 
+                <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
+
+                <button type="button" id="btn-preview" class="btn btn-sm btn-outline-secondary ms-2"
+                  onclick="togglePreview()" data-bs-toggle="tooltip" title="Alternar Pré-visualização">
+                  <i class="bi bi-eye me-1"></i> Pré-visualização
+                </button>
               </div>
-              <div class="card-body p-0">
-                <div class="editor-split">
-                  <textarea name="post_content" id="e-content" class="form-control" placeholder="Escreve em Markdown..."
-                    oninput="updatePreview()"><%= post ? post.post_content : '' %></textarea>
-                  <div>
-                    <div class="preview-label px-3 pt-3"><i class="bi bi-eye me-1"></i>Pré-visualização</div>
-                    <div class="preview-pane" id="e-preview"></div>
-                  </div>
+
+              <div class="card-body p-0 position-relative">
+                <textarea name="post_content" id="e-content"
+                  class="d-none"><%= post ? post.post_content : '' %></textarea>
+
+                <div id="image-toolbar" class="d-none shadow-sm"
+                  style="background-color: var(--bg-card, #1e1e2d); border-color: var(--border, #2b2b40);">
+                  <button type="button" class="toolbar-btn" onclick="formatarImagem('esquerda')"
+                    title="Alinhar à Esquerda">
+                    <i class="bi bi-text-left"></i>
+                  </button>
+                  <button type="button" class="toolbar-btn" onclick="formatarImagem('centro')" title="Centrar">
+                    <i class="bi bi-text-center"></i>
+                  </button>
+                  <button type="button" class="toolbar-btn" onclick="formatarImagem('direita')"
+                    title="Alinhar à Direita">
+                    <i class="bi bi-text-right"></i>
+                  </button>
+                  <button type="button" class="toolbar-btn" onclick="formatarImagem('nenhum')" title="Sem Alinhamento">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+
+                  <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
+
+                  <button type="button" class="toolbar-btn" onclick="formatarImagem('remover')" title="Remover Imagem">
+                    <i class="bi bi-trash text-danger"></i>
+                  </button>
+                </div>
+
+                <div id="editor-visual" contenteditable="true" class="form-control border-0"
+                  style="min-height: 400px; max-height: 600px; overflow-y: auto; padding: 1.5rem; border-radius: 0 0 0.375rem 0.375rem;"><%- post ? post.post_content : '' %></div>
+
+                <div id="preview-visual" class="d-none"
+                  style="min-height: 400px; max-height: 600px; overflow-y: auto; padding: 1.5rem; background-color: rgba(0,0,0,0.02); border-radius: 0 0 0.375rem 0.375rem;">
                 </div>
               </div>
             </div>
 
             <!-- Excerto -->
             <div class="card mb-3">
-              <div class="card-header">Excerto</div>
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Excerto</span>
+                <i class="bi bi-chevron-up text-muted card-toggle" style="cursor: pointer;"></i>
+              </div>
               <div class="card-body">
-                <textarea name="post_excerpt" class="form-control border-0 p-0" placeholder="Resumo curto do post..."
+                <textarea name="post_excerpt" class="form-control border-0 p-0" placeholder="  Resumo curto do post..."
                   style="min-height:70px;resize:none;box-shadow:none"><%= post ? (post.post_excerpt || '') : '' %></textarea>
               </div>
             </div>
 
-            <!-- ══════════════════════════════════════════════════════════════════════════ -->
-            <!-- CUSTOM FIELDS DINÂMICOS -->
-            <!-- ══════════════════════════════════════════════════════════════════════════ -->
-            <!--<% if (typeof fieldGroups !== 'undefined' && fieldGroups && fieldGroups.length) { %>
+            <% if (typeof revisions !=='undefined' && revisions.length> 0) { %>
+              <div class="card mb-3" id="revisions-box">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                  <span class="fw-semibold">Revisões</span>
+                  <div>
+                    <i class="bi bi-chevron-up text-muted" style="cursor: pointer;"></i>
+                  </div>
+                </div>
+                <div class="card-body p-0">
+                  <ul class="list-group list-group-flush">
+                    <% revisions.forEach(function(rev) { %>
+                      <li class="list-group-item d-flex align-items-center gap-3 py-3">
+                        <div
+                          style="width: 40px; height: 40px; background-color: #e2e4e7; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
+                          <i class="bi bi-person-fill" style="color: #fff; font-size: 24px;"></i>
+                        </div>
+
+                        <div style="font-size: 14px;">
+                          <a href="#" class="text-decoration-none fw-medium">
+                            <%= rev.author_name || 'Autor' %>
+                          </a>,
+                          <span class="text-muted">
+                            <%= rev.timeAgo %>
+                          </span>
+                          <a href="#" class="text-decoration-none text-muted">
+                            (<%= rev.exactDateFormatted %>)
+                          </a>
+                          <% if (rev.isAutoSave) { %>
+                            <span class="text-danger ms-1">[Cópia automática]</span>
+                            <% } %>
+                        </div>
+                      </li>
+                      <% }) %>
+                  </ul>
+                </div>
+              </div>
+              <% } %>
+
+                <!-- ══════════════════════════════════════════════════════════════════════════ -->
+                <!-- CUSTOM FIELDS DINÂMICOS -->
+                <!-- ══════════════════════════════════════════════════════════════════════════ -->
+                <!--<% if (typeof fieldGroups !== 'undefined' && fieldGroups && fieldGroups.length) { %>
       <% fieldGroups.forEach(function(group) { %>
         <div class="card mb-3">
           <div class="card-header d-flex align-items-center gap-2">
@@ -263,14 +312,15 @@
 
           </div>
 
-          <!-- ══════════════════════════════════════════════════════════════════════════ -->
-          <!-- COLUNA LATERAL (Metadados e Ações) -->
-          <!-- ══════════════════════════════════════════════════════════════════════════ -->
+          <!-- COLUNA LATERAL -->
           <div class="col-lg-4 d-flex flex-column gap-3">
 
             <!-- Publicação -->
             <div class="card">
-              <div class="card-header">Publicação</div>
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Publicação</span>
+                <i class="bi bi-chevron-up text-muted card-toggle" style="cursor: pointer;"></i>
+              </div>
               <div class="card-body d-flex flex-column gap-2">
                 <button type="submit" name="action" value="publish" class="btn btn-success">
                   <i class="bi bi-check-lg me-1"></i> Publicar
@@ -278,21 +328,34 @@
                 <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">
                   <i class="bi bi-save me-1"></i> Guardar Rascunho
                 </button>
-                <% if (typeof isEdit !=='undefined' && isEdit && post && post.post_status==='publish' ) { %>
-                  <!--<a href="/<%= postType === 'page' ? 'page' : 'post' %>/<%= post.post_name %>"
-            target="_blank" class="btn btn-outline-primary">
-            <i class="bi bi-box-arrow-up-right me-1"></i> Ver no site
+                <% if (typeof revisions !=='undefined' && revisions.length> 0) { %>
+                  <div class="mt-3 pt-3 border-top d-flex align-items-center gap-2" style="font-size: 14px;">
+                    <i class="bi bi-clock-history text-muted"></i>
+                    <span class="text-muted">Revisões: <b><%= revisions.length %></b></span>
+                    <a href="/admin/posts/<%= post.ID %>/revisions/compare" class="btn btn-sm btn-outline-primary">Ver todas</a>
+                  </div>
+                <% } %>
+
+                    <% if (typeof isEdit !=='undefined' && isEdit && post && post.post_status==='publish' ) { %>
+                      <a href="" target="" class="btn btn-outline-primary">
+                        <i class="bi bi-box-arrow-up-right me-1"></i> Ver no site
+                      </a>
+                      <!--          
+                  <a href="/<%= postType === 'page' ? 'page' : 'post' %>/<%= post.post_name %>"
+            target="_blank" class="btn btn-ghost btn-sm"
+            style="width:100%;justify-content:center;margin-bottom:8px">
+            ↗ Ver no site
           </a>-->
-                  <a href="" target="" class="btn btn-outline-primary">
-                    <i class="bi bi-box-arrow-up-right me-1"></i> Ver no site
-                  </a>
-                  <% } %>
+                      <% } %>
               </div>
             </div>
 
             <!-- Detalhes -->
             <div class="card">
-              <div class="card-header">Detalhes</div>
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Detalhes</span>
+                <i class="bi bi-chevron-up text-muted card-toggle" style="cursor: pointer;"></i>
+              </div>
               <div class="card-body">
                 <div class="mb-3">
                   <label class="form-label">Estado</label>
@@ -314,7 +377,10 @@
 
             <!-- URL Slug -->
             <div class="card">
-              <div class="card-header">URL (Slug)</div>
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <span>URL (Slug)</span>
+                <i class="bi bi-chevron-up text-muted card-toggle" style="cursor: pointer;"></i>
+              </div>
               <div class="card-body">
                 <input type="text" name="post_name" id="e-slug" class="form-control"
                   value="<%= post ? post.post_name : '' %>" placeholder="url-do-post">
@@ -372,28 +438,299 @@
     <% } %>-->
 
             <!-- Apagar Post -->
-            <% if (typeof isEdit !== 'undefined' && isEdit && post) { %>
-              <% 
-                // Preparar mensagem de confirmação
-                var itemType = postType === 'page' ? 'página' : 'post';
-                var confirmMsg = 'Apagar permanentemente esta ' + itemType + '? Esta ação não pode ser revertida.';
-              %>
-              <div class="card">
-                <div class="card-body">
-                  <h5 class="card-title text-danger">Apagar <%= itemType %></h5>
-                  <p class="text-muted mb-3">
-                  </p>
-                  <form method="POST" action="/admin/posts/<%= post.id %>/delete" onsubmit="return confirm('<%= confirmMsg %>')">
-                    <button type="submit" class="btn btn-danger">
-                      <i class="bi bi-trash me-1"></i> Apagar <%= itemType %>
-                    </button>
-                  </form>
+            <% if (typeof isEdit !=='undefined' && isEdit && post) { %>
+              <% var itemType=typeof postType !=='undefined' && postType==='page' ? 'página' : 'post' ; var
+                confirmMsg='Apagar permanentemente esta ' + itemType + '? Esta ação não pode ser revertida.' ; %>
+                <div class="card">
+                  <div class="card-body">
+                    <h5 class="card-title text-danger">Apagar <%= itemType %>
+                    </h5>
+                    <form method="POST" action="/admin/posts/<%= post.ID %>/delete"
+                      onsubmit="return confirm('<%= confirmMsg %>')">
+                      <button type="submit" class="btn btn-danger mt-2">
+                        <i class="bi bi-trash me-1"></i> Apagar <%= itemType %>
+                      </button>
+                    </form>
+                  </div>
                 </div>
-              </div>
-            <% } %>
+                <% } %>
 
           </div>
         </div>
       </form>
 
+      <!-- Offcanvas - Biblioteca de Media -->
+      <div class="offcanvas offcanvas-end" tabindex="-1" id="bibliotecaMediaOffcanvas"
+        style="width: 600px; background-color: #1a1d20;">
+        <div class="offcanvas-header border-bottom"
+          style="background-color: #1a1d20; border-color: #2d3135 !important;">
+          <h5 class="offcanvas-title fw-bold text-white">Selecionar Imagem</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+        </div>
+        <div class="offcanvas-body p-3" style="background-color: #0d0f10;">
+
+          <div id="media-loading" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">A carregar...</span>
+            </div>
+          </div>
+
+          <div id="media-grid" class="row g-3 d-none"></div>
+
+          <div id="media-empty" class="text-center py-5 d-none">
+            <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
+            <p class="text-muted mt-3">Nenhuma imagem disponível.</p>
+            <a href="/admin/media" class="btn btn-sm btn-primary" target="_blank">
+              <i class="bi bi-upload me-1"></i> Carregar Imagens
+            </a>
+          </div>
+
+        </div>
+      </div>
+
+      <script>
+        // Abrir biblioteca de media
+        function abrirBibliotecaMedia() {
+          var offcanvas = new bootstrap.Offcanvas(document.getElementById('bibliotecaMediaOffcanvas'));
+          offcanvas.show();
+          carregarImagensMedia();
+        }
+
+        // Carregar imagens via AJAX
+        function carregarImagensMedia() {
+          var loadingEl = document.getElementById('media-loading');
+          var gridEl = document.getElementById('media-grid');
+          var emptyEl = document.getElementById('media-empty');
+
+          loadingEl.classList.remove('d-none');
+          gridEl.classList.add('d-none');
+          emptyEl.classList.add('d-none');
+
+          fetch('/admin/media/api/list')
+            .then(response => response.json())
+            .then(data => {
+              loadingEl.classList.add('d-none');
+
+              if (!data.files || data.files.length === 0) {
+                emptyEl.classList.remove('d-none');
+                return;
+              }
+
+              var images = data.files.filter(function (f) {
+                return /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(f.titulo);
+              });
+
+              if (images.length === 0) {
+                emptyEl.classList.remove('d-none');
+                return;
+              }
+
+              gridEl.innerHTML = '';
+              images.forEach(function (img) {
+                var col = document.createElement('div');
+                col.className = 'col-6 col-md-4';
+
+                col.innerHTML = `
+                  <div class="card media-card-select shadow-sm h-100" style="cursor:pointer" onclick="selecionarImagemMedia('${img.ficheiro_url}', '${img.titulo.replace(/'/g, "\\'")}')">
+                    <img src="${img.ficheiro_url}" class="card-img-top" style="height:150px;object-fit:cover" loading="lazy" alt="${img.titulo}">
+                    <div class="card-body p-2 border-top bg-dark">
+                      <div class="text-truncate small text-white" title="${img.titulo}">
+                        ${img.titulo}
+                      </div>
+                    </div>
+                  </div>
+                `;
+
+                gridEl.appendChild(col);
+              });
+
+              gridEl.classList.remove('d-none');
+            })
+            .catch(error => {
+              console.error('Erro ao carregar media:', error);
+              loadingEl.classList.add('d-none');
+              emptyEl.classList.remove('d-none');
+            });
+        }
+
+        // Selecionar e inserir imagem no Editor Visual
+        function selecionarImagemMedia(url, titulo) {
+          var editor = document.getElementById('editor-visual');
+          editor.focus();
+
+          // Inserir tag de imagem nativamente
+          document.execCommand('insertImage', false, url);
+
+          // Estilizar a imagem acabada de inserir
+          var imagens = editor.getElementsByTagName('img');
+          if (imagens.length > 0) {
+            var ultimaImg = imagens[imagens.length - 1];
+            ultimaImg.style.maxWidth = '100%';
+            ultimaImg.style.height = 'auto';
+            ultimaImg.style.borderRadius = '8px';
+            ultimaImg.style.marginTop = '10px';
+            ultimaImg.style.marginBottom = '10px';
+            ultimaImg.alt = titulo;
+          }
+
+          sincronizarEditor();
+
+          var offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById('bibliotecaMediaOffcanvas'));
+          offcanvas.hide();
+        }
+
+        let imagemSelecionada = null;
+        const editorVisual = document.getElementById('editor-visual');
+
+        // Ao clicar dentro do editor
+        editorVisual.addEventListener('click', function (e) {
+          if (e.target.tagName === 'IMG') {
+            selecionarImagem(e.target);
+          } else {
+            removerSelecaoImagem();
+          }
+        });
+
+        // Se o user escrever ou fizer scroll, esconde a barra para não atrapalhar
+        editorVisual.addEventListener('input', removerSelecaoImagem);
+        editorVisual.addEventListener('scroll', removerSelecaoImagem);
+
+        function selecionarImagem(img) {
+          removerSelecaoImagem(); // Limpa estado anterior
+          imagemSelecionada = img;
+          imagemSelecionada.classList.add('selected-img');
+
+          const toolbar = document.getElementById('image-toolbar');
+          toolbar.classList.remove('d-none');
+
+          // Calcular a posição baseada no offset da imagem e do scroll do editor
+          const topPos = img.offsetTop - editorVisual.scrollTop - 45;
+          const leftPos = img.offsetLeft + (img.offsetWidth / 2) - (toolbar.offsetWidth / 2);
+
+          // Impedir que a tooltip fuja do quadro (margem de segurança)
+          toolbar.style.top = Math.max(10, topPos) + 'px';
+          toolbar.style.left = Math.max(10, leftPos) + 'px';
+        }
+
+        function removerSelecaoImagem() {
+          const toolbar = document.getElementById('image-toolbar');
+          if (toolbar && !toolbar.classList.contains('d-none')) {
+            toolbar.classList.add('d-none');
+          }
+          if (imagemSelecionada) {
+            imagemSelecionada.classList.remove('selected-img');
+            imagemSelecionada = null;
+          }
+        }
+
+        function formatarImagem(acao) {
+          if (!imagemSelecionada) return;
+
+          // Fazer reset aos estilos flutuantes
+          imagemSelecionada.style.float = '';
+          imagemSelecionada.style.display = 'block';
+          imagemSelecionada.style.margin = '10px 0';
+
+          if (acao === 'esquerda') {
+            imagemSelecionada.style.float = 'left';
+            imagemSelecionada.style.margin = '0 15px 15px 0';
+          } else if (acao === 'centro') {
+            imagemSelecionada.style.display = 'block';
+            imagemSelecionada.style.margin = '15px auto';
+          } else if (acao === 'direita') {
+            imagemSelecionada.style.float = 'right';
+            imagemSelecionada.style.margin = '0 0 15px 15px';
+          } else if (acao === 'remover') {
+            imagemSelecionada.remove();
+            removerSelecaoImagem();
+          }
+          // Se for "nenhum", mantém o reset padrão
+
+          sincronizarEditor();
+
+          // Se a imagem não foi apagada, recalcula a posição da tooltip
+          if (imagemSelecionada) {
+            selecionarImagem(imagemSelecionada);
+          }
+        }
+
+        // Estilos CSS
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', addStyles);
+        } else {
+          addStyles();
+        }
+
+        function addStyles() {
+          var style = document.createElement('style');
+          style.textContent = `
+            .media-card-select {
+              transition: transform 0.2s, box-shadow 0.2s;
+            }
+            .media-card-select:hover {
+              transform: translateY(-4px);
+              box-shadow: 0 8px 16px rgba(0,0,0,0.3) !important;
+            }
+            #editor-visual:focus {
+              outline: none;
+            }
+            #editor-visual img, #preview-visual img {
+              max-width: 100%;
+              height: auto;
+              cursor: pointer;
+            }
+            .toolbar-btn.disabled {
+              opacity: 0.4;
+              cursor: not-allowed;
+              pointer-events: none;
+            }
+            #btn-preview {
+              white-space: nowrap;
+            }
+
+            #image-toolbar {
+              position: absolute;
+              z-index: 1050;
+              border: 1px solid var(--border);
+              border-radius: 0.375rem;
+              padding: 0.25rem 0.5rem;
+              display: flex;
+              align-items: center;
+              gap: 0.25rem;
+              box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.2);
+              transition: top 0.1s ease-out, left 0.1s ease-out;
+            }
+
+            #image-toolbar button {
+              border: none;
+              background: transparent;
+            }
+          `;
+          document.head.appendChild(style);
+        }
+      </script>
+
       <%- include('../partials/admin-layout-end') %>
+        <script>
+          document.addEventListener('DOMContentLoaded', function () {
+            // Handler para ícones chevron nas card-headers
+            document.querySelectorAll('.card-header').forEach(header => {
+              const chevron = header.querySelector('.bi-chevron-up, .bi-chevron-down');
+              if (!chevron) return;
+              chevron.style.cursor = 'pointer';
+              header.addEventListener('click', function (e) {
+                // evita interferir com botões/link internos
+                if (e.target.closest('button, a')) return;
+                // procura o body da card imediatamente a seguir
+                let body = header.nextElementSibling;
+                if (!body || !body.classList.contains('card-body')) {
+                  body = header.parentElement.querySelector('.card-body');
+                }
+                if (!body) return;
+                const hidden = body.classList.toggle('d-none');
+                chevron.classList.toggle('bi-chevron-up', !hidden);
+                chevron.classList.toggle('bi-chevron-down', hidden);
+              });
+            });
+          });
+        </script>

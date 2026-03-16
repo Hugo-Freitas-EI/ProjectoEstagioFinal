@@ -130,6 +130,43 @@ router.get('/posts/:id/edit',     PostController.editForm);
 router.post('/posts/:id',         PostController.update);
 router.post('/posts/:id/delete',  PostController.destroy);
 
+// GET /admin/posts/:id/edit
+router.get('/admin/posts/:id/edit', async (req, res) => {
+  try {
+    const db = req.app.get('db');
+    const post = await db('posts').where({ id: req.params.id }).first();
+    
+    if (!post) {
+      return res.status(404).render('frontend/404');
+    }
+
+    // Carregar revisões
+    let revisions = [];
+    try {
+      revisions = await db('revisions')
+        .where({ post_id: post.id })
+        .orderBy('created_at', 'desc')
+        .limit(10);
+    } catch (e) {
+      console.log('Revisões não carregadas:', e);
+    }
+
+    res.render('admin/post-editor', {
+      pageTitle: `Editar: ${post.post_title}`,
+      currentPage: 'posts',
+      post: post,
+      postId: post.id,  // ← ADICIONAR ESTA LINHA
+      postType: 'post',
+      isEdit: true,
+      formAction: `/admin/posts/${post.id}`,
+      revisions: revisions
+    });
+  } catch (err) {
+    console.error('Erro ao carregar post:', err);
+    res.status(500).render('frontend/error', { pageTitle: 'Erro', message: 'Erro ao carregar post' });
+  }
+});
+
 // ══════════════════════════════════════════════════════════════════════════════
 // PAGES
 // ══════════════════════════════════════════════════════════════════════════════

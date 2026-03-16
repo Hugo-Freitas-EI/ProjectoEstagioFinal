@@ -62,6 +62,27 @@ router.get('/', async (req, res) => {
   }
 });
 
+// =============================
+// GET - API LIST (para offcanvas do editor)
+// =============================
+router.get('/api/list', async (req, res) => {
+  try {
+    const [media] = await db.query(`
+      SELECT 
+        m.*,
+        r.username
+      FROM media m
+      LEFT JOIN registers r ON m.autor_id = r.id
+      ORDER BY m.data_upload DESC
+    `);
+
+    res.json({ files: media });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Erro ao carregar media' });
+  }
+});
 
 // =============================
 // POST - UPLOAD

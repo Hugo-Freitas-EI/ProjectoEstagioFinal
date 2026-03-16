@@ -30,6 +30,20 @@ const Post = {
     return row || null;
   },
 
+  async findByIdWithAuthor(id) {
+    const postId = Number(id);
+    const [[row]] = await db.query(
+      `SELECT p.*,
+              r.username AS author_name
+       FROM wp_posts p
+       LEFT JOIN registers r ON p.post_author = r.id
+       WHERE p.ID = ?
+       LIMIT 1`,
+      [postId]
+    );
+    return row || null;
+  },
+
   async findBySlug(slug, postType = 'post') {
     const [[row]] = await db.query(
       "SELECT * FROM wp_posts WHERE post_name = ? AND post_type = ? AND post_status = 'publish'",
@@ -39,10 +53,45 @@ const Post = {
   },
 
   async countByStatus(postType) {
-    const [[all]] = await db.query("SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status!='auto-draft'", [postType]);
+    const [[all]]     = await db.query("SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status!='auto-draft'", [postType]);
     const [[publish]] = await db.query("SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='publish'", [postType]);
-    const [[draft]] = await db.query("SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='draft'", [postType]);
+    const [[draft]]   = await db.query("SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='draft'", [postType]);
     return { all: all.c, publish: publish.c, draft: draft.c };
+  },
+
+  async getRevisions(postId) {
+    const [rows] = await db.query(
+      `SELECT p.ID, p.post_modified, p.post_name, p.post_status, r.username AS author_name
+       FROM wp_posts p
+       LEFT JOIN registers r ON p.post_author = r.id
+       WHERE p.post_parent = ? AND p.post_type = 'revision'
+       ORDER BY p.post_modified DESC`,
+      [postId]
+    );
+    return rows;
+  },
+
+  async getRevisionById(revisionId) {
+    const id = Number(revisionId);
+    const [[row]] = await db.query(
+      `SELECT p.ID, p.post_parent, p.post_title, p.post_content, p.post_modified, p.post_name, p.post_status,
+              r.username AS author_name
+       FROM wp_posts p
+       LEFT JOIN registers r ON p.post_author = r.id
+       WHERE p.ID = ? AND p.post_type = 'revision'
+       LIMIT 1`,
+      [id]
+    );
+    return row || null;
+  },
+
+  async getPostTitleById(postId) {
+    const id = Number(postId);
+    const [[row]] = await db.query(
+      `SELECT ID, post_title FROM wp_posts WHERE ID = ? LIMIT 1`,
+      [id]
+    );
+    return row || null;
   },
 
   // ─── WRITE ────────────────────────────────────────────────────────────────
@@ -66,6 +115,32 @@ const Post = {
   async update(id, { title, content, excerpt, slug, status, date }) {
     const now = new Date();
     const postDate = date ? new Date(date) : now;
+
+    // 1. Buscar estado atual antes de alterar
+    const [[oldPost]] = await db.query('SELECT * FROM wp_posts WHERE ID = ?', [id]);
+    if (!oldPost) throw new Error('Post não encontrado para atualizar.');
+
+    // 2. Guardar revisão (snapshot do estado atual)
+    const revisionSlug = `${id}-revision-v${Date.now()}`;
+    await db.query(
+      `INSERT INTO wp_posts
+         (post_author, post_date, post_date_gmt, post_content, post_title,
+          post_excerpt, post_status, post_name, post_type, post_parent,
+          post_modified, post_modified_gmt, to_ping, pinged, post_content_filtered, guid)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'','','',?)`,
+      [
+        oldPost.post_author, oldPost.post_date, oldPost.post_date_gmt,
+        oldPost.post_content, oldPost.post_title, oldPost.post_excerpt,
+        'inherit',
+        revisionSlug,
+        'revision',
+        id,
+        oldPost.post_modified, oldPost.post_modified_gmt,
+        `/?p=${id}&revision=${Date.now()}`
+      ]
+    );
+
+    // 3. Atualizar o post principal com os novos dados
     await db.query(
       `UPDATE wp_posts SET
          post_title=?, post_content=?, post_excerpt=?, post_status=?,
@@ -77,6 +152,24 @@ const Post = {
 
   async delete(id) {
     await db.query('DELETE FROM wp_posts WHERE ID=?', [id]);
+  },
+
+  // Repõe o conteúdo de uma revisão para o post original
+  async restoreRevision(postId, revId) {
+    const [[rev]] = await db.query(
+      'SELECT * FROM wp_posts WHERE ID = ? AND post_type = ? LIMIT 1',
+      [revId, 'revision']
+    );
+    if (!rev) throw new Error('Revisão não encontrada.');
+
+    const now = new Date();
+    await db.query(
+      `UPDATE wp_posts
+       SET post_title=?, post_content=?, post_excerpt=?,
+           post_modified=?, post_modified_gmt=?
+       WHERE ID=?`,
+      [rev.post_title, rev.post_content, rev.post_excerpt || '', now, now, postId]
+    );
   },
 
   // ─── QUERY COMPLETA ───────────────────────────────────────────────────────

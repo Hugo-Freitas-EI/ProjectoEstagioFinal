@@ -1,4 +1,4 @@
-const PostService    = require('../services/postService');
+const PostService = require('../services/postService');
 const TaxonomyService = require('../services/taxonomyService');
 
 // Helper: extrai campos meta do body (prefixo "meta_")
@@ -89,12 +89,52 @@ const PostController = {
     const selectedTermIds = post.terms.map(t => t.id);
     const fieldGroups = await PostService.getEditorData(post.post_type, post.ID);
 
+    // --- CÓDIGO NOVO: Buscar e formatar Revisões ---
+    const rawRevisions = await require('../models/Post').getRevisions(post.ID);
+
+    const now = new Date();
+    const formatter = new Intl.RelativeTimeFormat('pt-PT', { numeric: 'auto' });
+
+    const revisions = rawRevisions.map(rev => {
+      // ↓ Alterado de rev.post_date para rev.post_modified ↓
+      const revDate = new Date(rev.post_modified);
+
+      const diffInMs = revDate - now;
+      const diffInHours = Math.round(diffInMs / (1000 * 60 * 60));
+      const diffInDays = Math.round(diffInMs / (1000 * 60 * 60 * 24));
+
+      let timeAgo = '';
+      if (Math.abs(diffInHours) < 24) {
+        timeAgo = formatter.format(diffInHours, 'hour');
+      } else {
+        timeAgo = formatter.format(diffInDays, 'day');
+      }
+
+      const exactDate = revDate.toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' });
+      const exactTime = revDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+      return {
+        ...rev,
+        timeAgo,
+        exactDateFormatted: `${exactDate} @ ${exactTime}`,
+        isAutoSave: rev.post_name.includes('autosave')
+      };
+    });
+    // -----------------------------------------------
+
     res.render('admin/post-editor', {
       pageTitle: `Editar ${postType === 'page' ? 'Página' : 'Post'}`,
       currentPage: postType === 'page' ? 'pages' : 'posts',
-      post, postType: post.post_type, isEdit: true, error: null,
+      post,
+      postId: post.ID,
+      postType: post.post_type,
+      isEdit: true,
+      error: null,
       formAction: `/admin/${postType === 'page' ? 'pages' : 'posts'}/${post.ID}`,
-      allTerms, selectedTermIds, fieldGroups
+      allTerms,
+      selectedTermIds,
+      fieldGroups,
+      revisions // <- Não se esqueça de passar as revisões para o render!
     });
   },
 
@@ -103,15 +143,23 @@ const PostController = {
     const postType = req.basePostType || 'post';
     const { id } = req.params;
     const { post_title, post_content, post_excerpt, post_name, post_date, action } = req.body;
+
     const status = action === 'publish' ? 'publish' : 'draft';
     const termIds = [].concat(req.body.term_ids || []);
     const meta = extractMeta(req.body);
 
+    const cleanContent = (post_content || '').trim();
+
     try {
       await PostService.update(id, {
-        title: (post_title || '').trim(), content: post_content || '',
-        excerpt: post_excerpt || '', slug: post_name || '',
-        status, date: post_date, termIds, meta
+        title: (post_title || '').trim(),
+        content: cleanContent,
+        excerpt: post_excerpt || '',
+        slug: post_name || '',
+        status,
+        date: post_date,
+        termIds,
+        meta
       });
       res.flash('success', status === 'publish' ? 'Publicado!' : 'Rascunho guardado.');
       res.redirect(`/admin/${postType === 'page' ? 'pages' : 'posts'}/${id}/edit`);

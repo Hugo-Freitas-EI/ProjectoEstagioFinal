@@ -3,8 +3,9 @@ const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
-const flashMiddleware = require('./middleware/flash'); // SEM './cms/' porque já está dentro de cms
+const flashMiddleware = require('./middleware/flash');
 const mediaRoutes = require('./routes/media');
+const adminRevisions = require('./routes/admin-revisions');
 
 const app = express();
 
@@ -45,10 +46,12 @@ app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
 
 // Rotas (A ORDEM IMPORTA!)
+
 app.use('/admin/media', mediaRoutes); // Colocar rotas mais específicas primeiro
 app.use('/admin', require('./routes/auth'));
 app.use('/admin', require('./routes/admin'));
 app.use('/', require('./routes/frontend')); // O frontend (que costuma apanhar tudo) deve ficar no fim
+app.use(adminRevisions);
 
 // 404
 app.use(function (req, res) {

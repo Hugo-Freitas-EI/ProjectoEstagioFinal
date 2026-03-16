@@ -86,8 +86,8 @@ router.post('/', async (req, res) => {
         to_ping, pinged, post_content_filtered, guid)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', '', ?)`,
       [authorId, now, now, post_content, post_title, post_excerpt,
-       post_status, slug, post_type, post_parent, now, now,
-       `http://localhost:${process.env.PORT}/?p=0`]
+        post_status, slug, post_type, post_parent, now, now,
+        `http://localhost:${process.env.PORT}/?p=0`]
     );
 
     // Atualiza o guid com o ID real
@@ -103,19 +103,52 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ── ATUALIZAR POST ──
+// ── ATUALIZAR POST (Com sistema de Revisões) ──
 // PUT /admin/api/posts/:id
 router.put('/:id', async (req, res) => {
   try {
+    const postId = req.params.id;
     const {
       post_title, post_content, post_excerpt,
       post_status, post_name
     } = req.body;
 
     const now = new Date();
-    const slug = post_name || (post_title ? slugify(post_title, { lower: true, strict: true }) : undefined);
 
-    // Constrói update dinâmico
+    // 1. BUSCAR O ESTADO ATUAL DO POST (Antes de alterar)
+    const [currentRows] = await db.query('SELECT * FROM wp_posts WHERE ID = ?', [postId]);
+    if (!currentRows.length) {
+      return res.status(404).json({ error: 'Post não encontrado' });
+    }
+    const oldPost = currentRows[0];
+
+    // 2. CRIAR A REVISÃO (Guardar o passado)
+    const revisionSlug = `${id}-revision-v${Date.now()}`;
+    await db.query(
+      `INSERT INTO wp_posts
+         (post_author, post_date, post_date_gmt, post_content, post_title,
+          post_excerpt, post_status, post_name, post_type, post_parent,
+          post_modified, post_modified_gmt, to_ping, pinged, post_content_filtered, guid)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'','','',?)`,
+      [
+        oldPost.post_author,
+        oldPost.post_modified,     // <-- CORREÇÃO: Usar a data de modificação antiga como post_date da revisão!
+        oldPost.post_modified_gmt, // <-- CORREÇÃO: Usar a data de modificação antiga
+        oldPost.post_content,
+        oldPost.post_title,
+        oldPost.post_excerpt,
+        'inherit',
+        revisionSlug,
+        'revision',
+        id,
+        oldPost.post_modified,     // post_modified
+        oldPost.post_modified_gmt, // post_modified_gmt
+        `/?p=${id}&revision=${Date.now()}`
+      ]
+    );
+
+    // 3. ATUALIZAR O POST PRINCIPAL (Gravar o presente)
+    const slug = post_name || (post_title ? slugify(post_title, { lower: true, strict: true }) : undefined);
     const fields = [];
     const values = [];
 
@@ -127,13 +160,13 @@ router.put('/:id', async (req, res) => {
 
     fields.push('post_modified = ?', 'post_modified_gmt = ?');
     values.push(now, now);
-    values.push(req.params.id);
+    values.push(postId);
 
     if (fields.length === 2) return res.status(400).json({ error: 'Nenhum campo para atualizar' });
 
     await db.query(`UPDATE wp_posts SET ${fields.join(', ')} WHERE ID = ?`, values);
 
-    res.json({ message: 'Post atualizado com sucesso' });
+    res.json({ message: 'Post atualizado com sucesso e revisão guardada.' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
