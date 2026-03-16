@@ -1,4 +1,12 @@
-<%- include('../partials/admin-layout', { pageTitle: pageTitle, currentPage: 'posts' }) %>
+<%- include('../partials/admin-layout', { pageTitle: pageTitle, currentPage: currentPage }) %>
+
+<%
+  // REMOVE ISTO se existir:
+  // const base  = `/admin/posts/${postId}/revisions/compare`;
+
+  // Mantém só cálculos que não colidam com locals:
+  const total = revisions.length;
+%>
 
 <style>
 .diff-del { background: rgba(220,53,69,.18); text-decoration: none; border-radius: 2px; }
@@ -115,9 +123,9 @@
 </style>
 
 <%
-  const total = revisions.length;
   const base  = `/admin/posts/${postId}/revisions/compare`;
-
+  const editUrl = `/admin/posts/${postId}/edit`;
+  const restoreBase = `/admin/posts/${postId}/revisions`;
   // slider: esquerda = mais antiga (pos=0), direita = mais recente (pos=total-1)
   // "Anterior" recua no tempo (pos-1), "Seguinte" avança no tempo (pos+1)
   const prevPos = currentPos - 1;
@@ -134,11 +142,9 @@
 
   <div class="mb-3">
     <h4 class="mb-1" style="font-family:'DM Serif Display',serif">
-      Comparar as revisões de "<a href="/admin/posts/<%= postId %>/edit"
-        style="color:var(--accent2, var(--bs-primary))"><%= postTitle %></a>"
+      Comparar as revisões de "<a href="<%= editUrl %>" style="color:var(--accent2, var(--bs-primary))"><%= postTitle %></a>"
     </h4>
-    <a href="/admin/posts/<%= postId %>/edit"
-      style="font-size:13px;color:var(--text2, var(--bs-secondary-color))">← Ir para o editor</a>
+    <a href="<%= editUrl %>" style="font-size:13px;color:var(--text2, var(--bs-secondary-color))">← Ir para o editor</a>
   </div>
 
   <% if (!total) { %>
@@ -154,11 +160,18 @@
       <% } %>
 
       <% if (!compareMode) { %>
-        <div style="flex:1;margin:0 20px">
-          <input type="range" class="rev-slider" id="rev-slider"
-            min="0" max="<%= total - 1 %>" value="<%= currentPos %>"
-            oninput="sliderNavigate(this.value)">
-        </div>
+        <form method="GET" action="<%= base %>" style="flex:1;margin:0 20px">
+          <input
+            type="range"
+            class="rev-slider"
+            id="rev-slider"
+            name="pos"
+            min="0"
+            max="<%= total - 1 %>"
+            step="1"
+            value="<%= currentPos %>"
+            onchange="this.form.submit()">
+        </form>
       <% } else { %>
         <div style="flex:1"></div>
       <% } %>
@@ -250,7 +263,7 @@
           <%# Botão repor: só aparece quando o lado direito é uma revisão (não o estado atual) %>
           <% if (!rightIsCurrentPost) { %>
             <form method="POST"
-              action="/admin/posts/<%= postId %>/revisions/<%= rightId %>/restore"
+              action="<%= restoreBase %>/<%= rightId %>/restore"
               onsubmit="return confirm('Repor esta revisão? O conteúdo actual será substituído.')">
               <button type="submit" class="btn-restore">Repor esta revisão</button>
             </form>
@@ -314,10 +327,6 @@
   const compareMode = Boolean(data.compareMode);
   const currentPos  = Number(data.currentPos);
 
-  window.sliderNavigate = function (pos) {
-    window.location.href = '/admin/posts/' + postId + '/revisions/compare?pos=' + pos;
-  };
-
   window.toggleCompareMode = function (checked) {
     const selects = document.getElementById('compare-selects');
     const slider  = document.getElementById('rev-slider');
@@ -328,10 +337,13 @@
     }
   };
 
-  // Setas do teclado: ← = mais antiga, → = mais recente
   document.addEventListener('keydown', function (e) {
     if (compareMode) return;
-    if (e.key === 'ArrowLeft'  && currentPos > 0)         sliderNavigate(currentPos - 1);
-    if (e.key === 'ArrowRight' && currentPos < total - 1) sliderNavigate(currentPos + 1);
+    if (e.key === 'ArrowLeft'  && currentPos > 0) {
+      window.location.href = '/admin/posts/' + postId + '/revisions/compare?pos=' + (currentPos - 1);
+    }
+    if (e.key === 'ArrowRight' && currentPos < total - 1) {
+      window.location.href = '/admin/posts/' + postId + '/revisions/compare?pos=' + (currentPos + 1);
+    }
   });
 })();

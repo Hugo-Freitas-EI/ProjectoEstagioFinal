@@ -88,7 +88,10 @@ const Post = {
   async getPostTitleById(postId) {
     const id = Number(postId);
     const [[row]] = await db.query(
-      `SELECT ID, post_title FROM wp_posts WHERE ID = ? LIMIT 1`,
+      `SELECT ID, post_title, post_type
+       FROM wp_posts
+       WHERE ID = ?
+       LIMIT 1`,
       [id]
     );
     return row || null;
