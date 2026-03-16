@@ -123,7 +123,9 @@
 </style>
 
 <%
-  const base  = `/admin/posts/${postId}/revisions/compare`;
+  const section = (typeof currentPage !== 'undefined' && currentPage === 'pages') ? 'pages' : 'posts';
+
+  const base  = `/admin/${section}/${postId}/revisions/compare`;
   const editUrl = `/admin/posts/${postId}/edit`;
   const restoreBase = `/admin/posts/${postId}/revisions`;
   // slider: esquerda = mais antiga (pos=0), direita = mais recente (pos=total-1)
