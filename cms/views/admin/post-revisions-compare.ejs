@@ -177,12 +177,14 @@
       <% } %>
 
       <div class="d-flex align-items-center gap-3">
-        <label class="compare-toggle">
-          <input type="checkbox" id="compare-toggle"
-            <%= compareMode ? 'checked' : '' %>
-            onchange="toggleCompareMode(this.checked)">
-          Comparar quaisquer duas revisões
-        </label>
+    <label class="compare-toggle">
+      <input
+        type="checkbox"
+        id="compare-toggle"
+        <%= compareMode ? 'checked' : '' %>
+        onchange="toggleCompareMode(this.checked)">
+      Comparar quaisquer duas revisões
+    </label>
 
         <% if (nextUrl) { %>
           <a href="<%= nextUrl %>" class="btn btn-sm btn-outline-secondary">Seguinte →</a>
@@ -197,27 +199,27 @@
       <form method="GET" action="<%= base %>"
         class="d-flex gap-3 align-items-end mb-4 flex-wrap">
         <input type="hidden" name="compare" value="1">
-        <div style="flex:1;min-width:220px">
+        <div style="flex:1;min-width:260px">
           <label class="form-label">Revisão (esquerda — mais antiga)</label>
-          <select class="form-select form-select-sm" name="left">
-            <% revisions.forEach(function(r) { const rid = r.ID || r.id; %>
-              <option value="<%= rid %>" <%= Number(rid) === Number(leftId) ? 'selected' : '' %>>
-                #<%= rid %> · <%= r.author_name || 'Autor' %> · <%= r.timeAgo %> (<%= r.exactDateFormatted %>)
-              </option>
+          <select class="form-select form-select-sm" name="left" id="left-select">
+            <% revisions.forEach(function(r, idx) { const rid = r.ID || r.id; %>
+              <% if (idx < revisions.length - 1) { %>
+                <option value="<%= rid %>" <%= Number(rid) === Number(leftId) ? 'selected' : '' %>>
+                  #<%= rid %> · <%= r.author_name || 'Autor' %> · <%= r.timeAgo %> (<%= r.exactDateFormatted %>)
+                </option>
+              <% } %>
             <% }) %>
           </select>
+          <div class="form-text">Escolhe primeiro a revisão da esquerda.</div>
         </div>
-        <div style="flex:1;min-width:220px">
+        <div style="flex:1;min-width:260px">
           <label class="form-label">Revisão (direita — mais recente)</label>
-          <select class="form-select form-select-sm" name="right">
-            <% revisions.forEach(function(r) { const rid = r.ID || r.id; %>
-              <option value="<%= rid %>" <%= Number(rid) === Number(rightId) ? 'selected' : '' %>>
-                #<%= rid %> · <%= r.author_name || 'Autor' %> · <%= r.timeAgo %> (<%= r.exactDateFormatted %>)
-              </option>
-            <% }) %>
+          <select class="form-select form-select-sm" name="right" id="right-select" disabled>
+            <option value="">— Seleciona a revisão da esquerda primeiro —</option>
           </select>
+          <div class="form-text">A direita só mostra revisões mais recentes.</div>
         </div>
-        <button type="submit" class="btn btn-sm btn-primary">Comparar</button>
+        <button type="submit" class="btn btn-sm btn-primary" id="compare-submit" disabled>Comparar</button>
       </form>
     </div>
 
@@ -318,32 +320,109 @@
   <% } %>
 </div>
 
-<script type="application/json" id="rev-compare-data"><%- JSON.stringify({ postId, total, currentPos, compareMode }) %></script>
+<script type="application/json" id="rev-compare-data"><%- JSON.stringify({
+  base,
+  compareMode,
+  currentPos,
+  leftId: Number(leftId || 0),
+  rightId: Number(rightId || 0),
+  revisions: (revisions || []).map(r => ({
+    id: Number(r.ID || r.id),
+    label: `#${Number(r.ID || r.id)} · ${(r.author_name || 'Autor')} · ${(r.timeAgo || '')} (${(r.exactDateFormatted || '')})`
+  }))
+}) %></script>
+
 <script>
 (function () {
-  const data        = JSON.parse(document.getElementById('rev-compare-data').textContent);
-  const postId      = Number(data.postId);
-  const total       = Number(data.total);
-  const compareMode = Boolean(data.compareMode);
-  const currentPos  = Number(data.currentPos);
+  const dataEl = document.getElementById('rev-compare-data');
+  if (!dataEl) return;
+
+  const data = JSON.parse(dataEl.textContent || '{}');
+
+  // ✅ ATIVAR sempre o toggle (mesmo quando compareMode=false)
+  const base = String(data.base || '');
+  const currentPos = Number(data.currentPos || 0);
 
   window.toggleCompareMode = function (checked) {
-    const selects = document.getElementById('compare-selects');
-    const slider  = document.getElementById('rev-slider');
-    if (selects) selects.hidden = !checked;
-    if (slider)  slider.hidden  =  checked;
-    if (!checked) {
-      window.location.href = '/admin/posts/' + postId + '/revisions/compare?pos=' + currentPos;
+    if (!base) return;
+
+    if (checked) {
+      // entra no modo comparar (server-side)
+      const leftId = Number(data.leftId || 0);
+      const rightId = Number(data.rightId || 0);
+      window.location.href =
+        base +
+        '?compare=1&left=' + encodeURIComponent(leftId) +
+        '&right=' + encodeURIComponent(rightId);
+      return;
     }
+
+    // volta ao modo slider (server-side)
+    window.location.href = base + '?pos=' + encodeURIComponent(currentPos);
   };
 
-  document.addEventListener('keydown', function (e) {
-    if (compareMode) return;
-    if (e.key === 'ArrowLeft'  && currentPos > 0) {
-      window.location.href = '/admin/posts/' + postId + '/revisions/compare?pos=' + (currentPos - 1);
+  // A partir daqui, mantém a tua lógica atual só para quando compareMode=true
+  if (!data.compareMode) return;
+
+  const revs = Array.isArray(data.revisions) ? data.revisions : [];
+  const leftSel = document.getElementById('left-select');
+  const rightSel = document.getElementById('right-select');
+  const submitBtn = document.getElementById('compare-submit');
+
+  if (!leftSel || !rightSel || !submitBtn) return;
+
+  const idxById = new Map(revs.map((r, idx) => [Number(r.id), idx]));
+
+  function rebuildRight() {
+    const leftId = Number(leftSel.value);
+    const leftIdx = idxById.get(leftId);
+
+    rightSel.innerHTML = '';
+
+    if (leftIdx == null) {
+      rightSel.disabled = true;
+      submitBtn.disabled = true;
+      rightSel.appendChild(new Option('— Seleciona a revisão da esquerda primeiro —', ''));
+      return;
     }
-    if (e.key === 'ArrowRight' && currentPos < total - 1) {
-      window.location.href = '/admin/posts/' + postId + '/revisions/compare?pos=' + (currentPos + 1);
+
+    const candidates = revs.slice(leftIdx + 1); // só mais recentes
+
+    if (!candidates.length) {
+      rightSel.disabled = true;
+      submitBtn.disabled = true;
+      rightSel.appendChild(new Option('— Não existem revisões mais recentes —', ''));
+      return;
     }
+
+    for (const r of candidates) {
+      rightSel.appendChild(new Option(r.label, String(r.id)));
+    }
+
+    // Mantém rightId se ainda for válido; senão escolhe a primeira opção possível
+    const desiredRight = Number(data.rightId || 0);
+    const desiredIdx = idxById.get(desiredRight);
+
+    if (desiredIdx != null && desiredIdx > leftIdx) {
+      rightSel.value = String(desiredRight);
+    } else {
+      rightSel.selectedIndex = 0;
+    }
+
+    rightSel.disabled = false;
+    submitBtn.disabled = !rightSel.value;
+  }
+
+  leftSel.addEventListener('change', () => {
+    // quando muda a esquerda, deixa de “fixar” o rightId antigo
+    data.rightId = 0;
+    rebuildRight();
   });
+
+  rightSel.addEventListener('change', () => {
+    submitBtn.disabled = !rightSel.value;
+  });
+
+  rebuildRight();
 })();
+</script>
