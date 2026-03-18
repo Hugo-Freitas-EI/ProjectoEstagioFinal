@@ -1,13 +1,5 @@
 <%- include('../partials/admin-layout', { pageTitle: pageTitle, currentPage: currentPage }) %>
 
-<%
-  // REMOVE ISTO se existir:
-  // const base  = `/admin/posts/${postId}/revisions/compare`;
-
-  // Mantém só cálculos que não colidam com locals:
-  const total = revisions.length;
-%>
-
 <style>
 .diff-del { background: rgba(220,53,69,.18); text-decoration: none; border-radius: 2px; }
 .diff-ins { background: rgba(25,135,84,.18);  text-decoration: none; border-radius: 2px; }
@@ -123,6 +115,8 @@
 </style>
 
 <%
+// Mantém só cálculos que não colidam com locals:
+  const total = revisions.length;
   const section = (typeof currentPage !== 'undefined' && currentPage === 'pages') ? 'pages' : 'posts';
 
   const base  = `/admin/${section}/${postId}/revisions/compare`;
