@@ -54,8 +54,42 @@ function insertMd(syntax) {
   updatePreview();
 }
 
+// ── SIDEBAR COLLAPSE ──
+function initSidebarToggle() {
+  var sidebar = document.getElementById('sidebar');
+  var mainContent = document.getElementById('mainContent');
+  var toggleBtn = document.getElementById('sidebarToggle');
+  var toggleIcon = document.getElementById('sidebarToggleIcon');
+  if (!sidebar || !toggleBtn) return;
+
+  function setCollapsed(collapsed) {
+    if (collapsed) {
+      sidebar.classList.add('collapsed');
+      if (mainContent) mainContent.classList.add('sidebar-collapsed');
+      toggleIcon.className = 'bi bi-layout-sidebar';
+      toggleBtn.title = 'Expandir sidebar';
+    } else {
+      sidebar.classList.remove('collapsed');
+      if (mainContent) mainContent.classList.remove('sidebar-collapsed');
+      toggleIcon.className = 'bi bi-layout-sidebar-reverse';
+      toggleBtn.title = 'Minimizar sidebar';
+    }
+    localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
+  }
+
+  // Restaurar estado guardado
+  if (localStorage.getItem('sidebarCollapsed') === '1') {
+    setCollapsed(true);
+  }
+
+  toggleBtn.addEventListener('click', function() {
+    setCollapsed(!sidebar.classList.contains('collapsed'));
+  });
+}
+
 // ── INICIALIZAÇÃO ──
 document.addEventListener('DOMContentLoaded', function() {
+  initSidebarToggle();
   // Slug manual
   var slugEl = document.getElementById('e-slug');
   if (slugEl) {

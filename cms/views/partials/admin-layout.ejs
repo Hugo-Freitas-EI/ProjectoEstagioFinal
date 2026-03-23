@@ -15,59 +15,60 @@
 <body>
   <div class="d-flex">
 
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-logo">
-        <h1>NodeCMS</h1>
-        <span>Painel Admin</span>
+        <h1 class="sidebar-title">NodeCMS</h1>
+        <span class="sidebar-subtitle">Painel Admin</span>
+        <button class="sidebar-toggle" id="sidebarToggle" title="Minimizar sidebar">
+          <i class="bi bi-layout-sidebar-reverse" id="sidebarToggleIcon"></i>
+        </button>
       </div>
 
       <nav class="sidebar-nav">
 
         <div class="nav-section">Principal</div>
-        <a href="/admin" class="nav-item <%= currentPage === 'dashboard' ? 'active' : '' %>">
+        <a href="/admin" title="Dashboard" class="nav-item <%= currentPage === 'dashboard' ? 'active' : '' %>">
           <i class="bi bi-grid"></i><span>Dashboard</span>
         </a>
 
         <div class="nav-section">Conteúdo</div>
-        <a href="/admin/cpt/post" class="nav-item <%= currentPage === 'post' ? 'active' : '' %>">
+        <a href="/admin/cpt/post" title="Posts" class="nav-item <%= currentPage === 'post' ? 'active' : '' %>">
           <i class="bi bi-pencil-square"></i><span>Posts</span>
         </a>
-        <a href="/admin/cpt/page" class="nav-item <%= currentPage === 'page' ? 'active' : '' %>">
+        <a href="/admin/cpt/page" title="Páginas" class="nav-item <%= currentPage === 'page' ? 'active' : '' %>">
           <i class="bi bi-file-text"></i><span>Páginas</span>
         </a>
-        <a href="/admin/media" class="nav-item <%= currentPage === 'media' ? 'active' : '' %>">
+        <a href="/admin/media" title="Media" class="nav-item <%= currentPage === 'media' ? 'active' : '' %>">
           <i class="bi bi-images"></i><span>Media</span>
         </a>
 
         <%# CPTs dinâmicos da BD %>
           <% if (typeof customPostTypes !=='undefined' && customPostTypes.length) { %>
             <% customPostTypes.forEach(function(cpt) { %>
-              <a href="/admin/cpt/<%= cpt.name %>" class="nav-item <%= currentPage === cpt.name ? 'active' : '' %>">
-                <i class="bi bi-collection"></i><span>
-                  <%= cpt.label %>
-                </span>
+              <a href="/admin/cpt/<%= cpt.name %>" title="<%= cpt.label %>" class="nav-item <%= currentPage === cpt.name ? 'active' : '' %>">
+                <i class="bi bi-collection"></i><span><%= cpt.label %></span>
               </a>
               <% }) %>
                 <% } %>
 
                   <div class="nav-section">Taxonomias</div>
-                  <a href="/admin/categories" class="nav-item <%= currentPage === 'categories' ? 'active' : '' %>">
+                  <a href="/admin/categories" title="Categorias" class="nav-item <%= currentPage === 'categories' ? 'active' : '' %>">
                     <i class="bi bi-folder"></i><span>Categorias</span>
                   </a>
-                  <a href="/admin/terms" class="nav-item <%= currentPage === 'terms' ? 'active' : '' %>">
+                  <a href="/admin/terms" title="Termos" class="nav-item <%= currentPage === 'terms' ? 'active' : '' %>">
                     <i class="bi bi-tag"></i><span>Termos</span>
                   </a>
 
                   <div class="nav-section">Estrutura</div>
-                  <a href="/admin/post-types" class="nav-item <%= currentPage === 'post-types' ? 'active' : '' %>">
+                  <a href="/admin/post-types" title="Tipos de Conteúdo" class="nav-item <%= currentPage === 'post-types' ? 'active' : '' %>">
                     <i class="bi bi-collection-fill"></i><span>Tipos de Conteúdo</span>
                   </a>
-                  <a href="/admin/field-groups" class="nav-item <%= currentPage === 'field-groups' ? 'active' : '' %>">
+                  <a href="/admin/field-groups" title="Custom Fields" class="nav-item <%= currentPage === 'field-groups' ? 'active' : '' %>">
                     <i class="bi bi-sliders"></i><span>Custom Fields</span>
                   </a>
 
                   <div class="nav-section">Gestão</div>
-                  <a href="/admin/users" class="nav-item <%= currentPage === 'users' ? 'active' : '' %>">
+                  <a href="/admin/users" title="Utilizadores" class="nav-item <%= currentPage === 'users' ? 'active' : '' %>">
                     <i class="bi bi-people"></i><span>Utilizadores</span>
                   </a>
 
@@ -92,7 +93,7 @@
       </div>
     </aside>
 
-    <div class="main-content">
+    <div class="main-content" id="mainContent">
       <div class="topbar">
         <h1>
           <%= typeof pageTitle !=='undefined' ? pageTitle : '' %>
