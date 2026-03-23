@@ -1,66 +1,95 @@
-const PostService = require('../services/postService');
+const PostService     = require('../services/postService');
 const TaxonomyService = require('../services/taxonomyService');
+const PostType        = require('../models/PostType');
+const Post            = require('../models/Post');
 
-// Helper: extrai campos meta do body (prefixo "meta_")
 function extractMeta(body) {
   const meta = {};
   for (const [key, val] of Object.entries(body)) {
-    if (key.startsWith('meta_')) {
-      meta[key.replace('meta_', '')] = val;
-    }
+    if (key.startsWith('meta_')) meta[key.replace('meta_', '')] = val;
   }
   return meta;
 }
 
+// Devolve o label legível de um postType
+async function getPostTypeLabel(name) {
+  const pt = await PostType.findByName(name);
+  return pt?.label || name;
+}
+
+// Devolve as taxonomias (categories) associadas ao postType
+// Para post/page usa todas; para CPTs só as associadas
+async function getRelevantTerms(postTypeName) {
+  const systemTypes = ['post', 'page'];
+  if (systemTypes.includes(postTypeName)) {
+    return TaxonomyService.listTerms();
+  }
+  const taxonomies = await PostType.getTaxonomies(postTypeName);
+  if (!taxonomies.length) return [];
+  const { Term } = require('../models/Term') || require('../models/Term');
+  // buscar termos de cada taxonomia associada
+  const Term2 = require('../models/Term');
+  const allTerms = [];
+  for (const cat of taxonomies) {
+    const terms = await Term2.findAll({ categoryId: cat.id });
+    allTerms.push(...terms);
+  }
+  return allTerms;
+}
+
 const PostController = {
 
-  // GET /admin/posts  |  GET /admin/pages
   async list(req, res) {
     const postType = req.basePostType || 'post';
+    const label    = await getPostTypeLabel(postType);
     const { status = 'all', search = '', page = 1 } = req.query;
+
     const result = await PostService.list(postType, {
       status: status === 'all' ? null : status,
       search, page: Number(page), limit: 20
     });
+
     res.render('admin/posts-list', {
-      pageTitle: postType === 'page' ? 'Páginas' : 'Posts',
-      currentPage: postType === 'page' ? 'pages' : 'posts',
+      pageTitle: label,
+      currentPage: postType,
       ...result,
       postType, status, search,
       pagination: { current: Number(page), total: Math.ceil(result.total / 20) }
     });
   },
 
-  // GET /admin/posts/new
   async newForm(req, res) {
     const postType = req.basePostType || 'post';
-    const allTerms = await TaxonomyService.listTerms();
+    const label    = await getPostTypeLabel(postType);
+    const allTerms = await getRelevantTerms(postType);
     const fieldGroups = await PostService.getEditorData(postType);
+
     res.render('admin/post-editor', {
-      pageTitle: postType === 'page' ? 'Nova Página' : 'Novo Post',
-      currentPage: postType === 'page' ? 'pages' : 'posts',
+      pageTitle: `Novo ${label}`,
+      currentPage: postType,
       post: null, postType, isEdit: false, error: null,
-      formAction: `/admin/${postType === 'page' ? 'pages' : 'posts'}`,
-      allTerms, selectedTermIds: [], fieldGroups
+      formAction: `/admin/cpt/${postType}`,
+      allTerms, selectedTermIds: [], fieldGroups, revisions: []
     });
   },
 
-  // POST /admin/posts
   async create(req, res) {
     const postType = req.basePostType || 'post';
+    const label    = await getPostTypeLabel(postType);
     const { post_title, post_content, post_excerpt, post_name, post_date, action } = req.body;
-    const status = action === 'publish' ? 'publish' : 'draft';
-    const termIds = [].concat(req.body.term_ids || []);
-    const meta = extractMeta(req.body);
+    const status   = action === 'publish' ? 'publish' : 'draft';
+    const termIds  = [].concat(req.body.term_ids || []);
+    const meta     = extractMeta(req.body);
 
     if (!post_title?.trim()) {
-      const allTerms = await TaxonomyService.listTerms();
+      const allTerms    = await getRelevantTerms(postType);
       const fieldGroups = await PostService.getEditorData(postType);
       return res.render('admin/post-editor', {
-        pageTitle: 'Novo Post', currentPage: postType === 'page' ? 'pages' : 'posts',
-        post: req.body, postType, isEdit: false, error: 'O título é obrigatório.',
-        formAction: `/admin/${postType === 'page' ? 'pages' : 'posts'}`,
-        allTerms, selectedTermIds: termIds, fieldGroups
+        pageTitle: `Novo ${label}`, currentPage: postType,
+        post: req.body, postType, isEdit: false,
+        error: 'O título é obrigatório.',
+        formAction: `/admin/cpt/${postType}`,
+        allTerms, selectedTermIds: termIds, fieldGroups, revisions: []
       });
     }
 
@@ -70,112 +99,79 @@ const PostController = {
         excerpt: post_excerpt || '', slug: post_name || '',
         status, postType, date: post_date, termIds, meta
       });
-      res.flash('success', status === 'publish' ? 'Publicado com sucesso!' : 'Rascunho guardado.');
-      res.redirect(`/admin/${postType === 'page' ? 'pages' : 'posts'}/${id}/edit`);
+      res.flash('success', status === 'publish' ? 'Publicado!' : 'Rascunho guardado.');
+      res.redirect(`/admin/cpt/${postType}/${id}/edit`);
     } catch (err) {
       console.error(err);
       res.flash('error', 'Erro ao guardar: ' + err.message);
-      res.redirect(`/admin/${postType === 'page' ? 'pages' : 'posts'}/new`);
+      res.redirect(`/admin/cpt/${postType}/new`);
     }
   },
 
-  // GET /admin/posts/:id/edit
   async editForm(req, res) {
     const postType = req.basePostType || 'post';
-    const post = await PostService.getWithFullData(req.params.id);
-    if (!post) return res.redirect(`/admin/${postType === 'page' ? 'pages' : 'posts'}`);
+    const label    = await getPostTypeLabel(postType);
+    const post     = await PostService.getWithFullData(req.params.id);
+    if (!post) return res.redirect(`/admin/cpt/${postType}`);
 
-    const allTerms = await TaxonomyService.listTerms();
+    const allTerms       = await getRelevantTerms(postType);
     const selectedTermIds = post.terms.map(t => t.id);
-    const fieldGroups = await PostService.getEditorData(post.post_type, post.ID);
+    const fieldGroups    = await PostService.getEditorData(post.post_type, post.ID);
 
-    // --- CÓDIGO NOVO: Buscar e formatar Revisões ---
-    const rawRevisions = await require('../models/Post').getRevisions(post.ID);
-
-    const now = new Date();
-    const formatter = new Intl.RelativeTimeFormat('pt-PT', { numeric: 'auto' });
-
-    const revisions = rawRevisions.map(rev => {
-      // ↓ Alterado de rev.post_date para rev.post_modified ↓
-      const revDate = new Date(rev.post_modified);
-
-      const diffInMs = revDate - now;
-      const diffInHours = Math.round(diffInMs / (1000 * 60 * 60));
-      const diffInDays = Math.round(diffInMs / (1000 * 60 * 60 * 24));
-
-      let timeAgo = '';
-      if (Math.abs(diffInHours) < 24) {
-        timeAgo = formatter.format(diffInHours, 'hour');
-      } else {
-        timeAgo = formatter.format(diffInDays, 'day');
-      }
-
-      const exactDate = revDate.toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' });
-      const exactTime = revDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-      return {
-        ...rev,
-        timeAgo,
-        exactDateFormatted: `${exactDate} @ ${exactTime}`,
-        isAutoSave: rev.post_name.includes('autosave')
-      };
+    // Revisões
+    const rawRevisions = await Post.getRevisions(post.ID);
+    const now          = new Date();
+    const fmt          = new Intl.RelativeTimeFormat('pt-PT', { numeric: 'auto' });
+    const revisions    = rawRevisions.map(rev => {
+      const d       = new Date(rev.post_modified);
+      const diffH   = Math.round((d - now) / 3600000);
+      const diffD   = Math.round((d - now) / 86400000);
+      const timeAgo = Math.abs(diffH) < 24 ? fmt.format(diffH, 'hour') : fmt.format(diffD, 'day');
+      const exact   = d.toLocaleDateString('pt-PT', { day:'numeric', month:'long', year:'numeric' })
+                    + ' @ ' + d.toLocaleTimeString('pt-PT', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+      return { ...rev, timeAgo, exactDateFormatted: exact, isAutoSave: rev.post_name.includes('autosave') };
     });
-    // -----------------------------------------------
 
     res.render('admin/post-editor', {
-      pageTitle: `Editar ${postType === 'page' ? 'Página' : 'Post'}`,
-      currentPage: postType === 'page' ? 'pages' : 'posts',
-      post,
-      postId: post.ID,
-      postType: post.post_type,
-      isEdit: true,
-      error: null,
-      formAction: `/admin/${postType === 'page' ? 'pages' : 'posts'}/${post.ID}`,
-      allTerms,
-      selectedTermIds,
-      fieldGroups,
-      revisions // <- Não se esqueça de passar as revisões para o render!
+      pageTitle: `Editar ${label}`,
+      currentPage: postType,
+      post, postId: post.ID, postType: post.post_type,
+      isEdit: true, error: null,
+      formAction: `/admin/cpt/${postType}/${post.ID}`,
+      allTerms, selectedTermIds, fieldGroups, revisions
     });
   },
 
-  // POST /admin/posts/:id
   async update(req, res) {
     const postType = req.basePostType || 'post';
-    const { id } = req.params;
+    const { id }   = req.params;
     const { post_title, post_content, post_excerpt, post_name, post_date, action } = req.body;
-
-    const status = action === 'publish' ? 'publish' : 'draft';
-    const termIds = [].concat(req.body.term_ids || []);
-    const meta = extractMeta(req.body);
-
-    const cleanContent = (post_content || '').trim();
+    const status   = action === 'publish' ? 'publish' : 'draft';
+    const termIds  = [].concat(req.body.term_ids || []);
+    const meta     = extractMeta(req.body);
 
     try {
       await PostService.update(id, {
         title: (post_title || '').trim(),
-        content: cleanContent,
+        content: (post_content || '').trim(),
         excerpt: post_excerpt || '',
         slug: post_name || '',
-        status,
-        date: post_date,
-        termIds,
-        meta
+        status, date: post_date, termIds, meta
       });
       res.flash('success', status === 'publish' ? 'Publicado!' : 'Rascunho guardado.');
-      res.redirect(`/admin/${postType === 'page' ? 'pages' : 'posts'}/${id}/edit`);
+      res.redirect(`/admin/cpt/${postType}/${id}/edit`);
     } catch (err) {
       console.error(err);
       res.flash('error', 'Erro: ' + err.message);
-      res.redirect(`/admin/${postType === 'page' ? 'pages' : 'posts'}/${id}/edit`);
+      res.redirect(`/admin/cpt/${postType}/${id}/edit`);
     }
   },
 
-  // POST /admin/posts/:id/delete
   async destroy(req, res) {
     const postType = req.basePostType || 'post';
     await PostService.delete(req.params.id);
     res.flash('success', 'Apagado com sucesso.');
-    res.redirect(`/admin/${postType === 'page' ? 'pages' : 'posts'}`);
+    res.redirect(`/admin/cpt/${postType}`);
   }
 };
 

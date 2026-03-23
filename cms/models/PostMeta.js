@@ -2,7 +2,6 @@ const db = require('../db');
 
 const PostMeta = {
 
-  // Lê todos os valores de meta de um post
   async findByPost(postId) {
     const [rows] = await db.query(
       `SELECT pm.id, pm.field_id, pm.value,
@@ -17,37 +16,41 @@ const PostMeta = {
     return rows;
   },
 
-  // Lê o valor de um campo específico
   async getValue(postId, fieldId) {
     const [[row]] = await db.query(
-      'SELECT value FROM post_meta WHERE post_id=? AND field_id=?',
+      'SELECT value FROM post_meta WHERE post_id = ? AND field_id = ? LIMIT 1',
       [postId, fieldId]
     );
     return row ? row.value : null;
   },
 
-  // Guarda (upsert) o valor de um campo
+  // Upsert manual: a tabela não tem UNIQUE KEY (post_id, field_id)
+  // por isso ON DUPLICATE KEY UPDATE não funciona — fazemos SELECT + UPDATE ou INSERT
   async setValue(postId, fieldId, value) {
-    await db.query(
-      `INSERT INTO post_meta (post_id, field_id, value)
-       VALUES (?,?,?)
-       ON DUPLICATE KEY UPDATE value=VALUES(value)`,
-      [postId, fieldId, value]
+    const [[existing]] = await db.query(
+      'SELECT id FROM post_meta WHERE post_id = ? AND field_id = ? LIMIT 1',
+      [postId, fieldId]
     );
+    if (existing) {
+      await db.query('UPDATE post_meta SET value = ? WHERE id = ?', [value, existing.id]);
+    } else {
+      await db.query(
+        'INSERT INTO post_meta (post_id, field_id, value) VALUES (?,?,?)',
+        [postId, fieldId, value]
+      );
+    }
   },
 
-  // Guarda múltiplos campos de uma vez (usado no save do editor)
   async setMany(postId, fieldsMap) {
-    // fieldsMap = { fieldId: value, ... }
     const entries = Object.entries(fieldsMap);
     if (!entries.length) return;
     for (const [fieldId, value] of entries) {
-      await PostMeta.setValue(postId, fieldId, value ?? '');
+      await PostMeta.setValue(postId, Number(fieldId), value ?? '');
     }
   },
 
   async deleteByPost(postId) {
-    await db.query('DELETE FROM post_meta WHERE post_id=?', [postId]);
+    await db.query('DELETE FROM post_meta WHERE post_id = ?', [postId]);
   }
 };
 

@@ -1,0 +1,88 @@
+<%- include('../../partials/admin-layout', { pageTitle: 'Tipos de Conteúdo', currentPage: 'post-types' }) %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <p class="text-muted mb-0"><%= postTypes.length %> tipo(s) custom registado(s)</p>
+  <a href="/admin/post-types/new" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Novo Tipo de Conteúdo
+  </a>
+</div>
+
+<!-- Tipos de sistema (não editáveis) -->
+<div class="card mb-3">
+  <div class="card-header d-flex align-items-center gap-2">
+    <i class="bi bi-lock" style="color:var(--text2);font-size:12px"></i>
+    <span style="font-size:12px;font-family:'DM Mono',monospace;color:var(--text2)">TIPOS DE SISTEMA</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead><tr><th>Name</th><th>Label</th><th>Notas</th></tr></thead>
+      <tbody>
+        <tr>
+          <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent2)">post</td>
+          <td>Posts</td>
+          <td class="text-muted small">Artigos e notícias</td>
+        </tr>
+        <tr>
+          <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent2)">page</td>
+          <td>Páginas</td>
+          <td class="text-muted small">Páginas estáticas</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Tipos custom -->
+<% if (!postTypes.length) { %>
+  <div class="card">
+    <div class="card-body text-center py-5 text-muted">
+      <i class="bi bi-collection d-block mb-3" style="font-size:2.5rem;opacity:.3"></i>
+      <p class="mb-3">Sem tipos de conteúdo custom ainda.</p>
+      <a href="/admin/post-types/new" class="btn btn-sm btn-primary">Criar primeiro</a>
+    </div>
+  </div>
+<% } else { %>
+  <div class="card">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead><tr><th>Name (slug)</th><th>Label (sidebar)</th><th>Taxonomias</th><th>Posts</th><th class="text-end">Ações</th></tr></thead>
+        <tbody>
+          <% postTypes.forEach(function(pt) { %>
+            <tr>
+              <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent2)"><%= pt.name %></td>
+              <td style="font-weight:500"><%= pt.label %></td>
+              <td>
+                <% if (pt.taxonomies && pt.taxonomies.length) { %>
+                  <% pt.taxonomies.forEach(function(t) { %>
+                    <span class="badge bg-primary me-1"><%= t.name %></span>
+                  <% }) %>
+                <% } else { %>
+                  <span class="text-muted small">nenhuma</span>
+                <% } %>
+              </td>
+              <td><span class="badge bg-secondary"><%= pt.postCount || 0 %></span></td>
+              <td class="text-end">
+                <div class="d-flex gap-1 justify-content-end">
+                  <a href="/admin/cpt/<%= pt.name %>" class="btn btn-sm btn-outline-secondary" title="Ver posts">
+                    <i class="bi bi-collection"></i>
+                  </a>
+                  <a href="/admin/post-types/<%= pt.name %>/edit" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-pencil"></i>
+                  </a>
+                  <form method="POST" action="/admin/post-types/<%= pt.name %>/delete"
+                    onsubmit="return confirm('Desativar tipo \'<%= pt.name %>\'? Os posts existentes não são apagados.')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<% } %>
+
+<%- include('../../partials/admin-layout-end') %>

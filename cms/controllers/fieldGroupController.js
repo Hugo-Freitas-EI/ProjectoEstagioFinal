@@ -1,4 +1,5 @@
 const FieldService = require('../services/fieldService');
+const PostType     = require('../models/PostType');
 
 const FieldGroupController = {
 
@@ -10,20 +11,23 @@ const FieldGroupController = {
   },
 
   async newForm(req, res) {
+    const allPostTypes = await PostType.findAllWithSystem();
     res.render('admin/field-groups/form', {
       pageTitle: 'Novo Grupo de Campos', currentPage: 'field-groups',
       group: null, isEdit: false, error: null,
-      fieldTypes: FieldService.getFieldTypes()
+      fieldTypes: FieldService.getFieldTypes(),
+      allPostTypes
     });
   },
 
   async create(req, res) {
     const { name, post_type } = req.body;
     if (!name?.trim() || !post_type?.trim()) {
+      const allPostTypes = await PostType.findAllWithSystem();
       return res.render('admin/field-groups/form', {
         pageTitle: 'Novo Grupo de Campos', currentPage: 'field-groups',
         group: req.body, isEdit: false, error: 'Nome e post type são obrigatórios.',
-        fieldTypes: FieldService.getFieldTypes()
+        fieldTypes: FieldService.getFieldTypes(), allPostTypes
       });
     }
     try {
@@ -39,10 +43,12 @@ const FieldGroupController = {
   async editForm(req, res) {
     const group = await FieldService.getGroup(req.params.id);
     if (!group) return res.redirect('/admin/field-groups');
+    const allPostTypes = await PostType.findAllWithSystem();
     res.render('admin/field-groups/form', {
       pageTitle: 'Editar Grupo de Campos', currentPage: 'field-groups',
       group, isEdit: true, error: null,
-      fieldTypes: FieldService.getFieldTypes()
+      fieldTypes: FieldService.getFieldTypes(),
+      allPostTypes
     });
   },
 
@@ -67,13 +73,13 @@ const FieldGroupController = {
   // ── CAMPOS ────────────────────────────────────────────────────────────────
 
   async addField(req, res) {
-    const { label, name, type, options, required } = req.body;
+    const { label, name, type } = req.body;
     if (!label?.trim() || !type) {
       res.flash('error', 'Label e tipo são obrigatórios.');
       return res.redirect('/admin/field-groups/' + req.params.id + '/edit');
     }
     try {
-      await FieldService.createField(req.params.id, { label, name, type, options, required });
+      await FieldService.createField(req.params.id, { label, name, type });
       res.flash('success', 'Campo adicionado.');
     } catch (err) {
       res.flash('error', err.message);
@@ -82,9 +88,9 @@ const FieldGroupController = {
   },
 
   async updateField(req, res) {
-    const { label, name, type, options, required } = req.body;
+    const { label, name, type } = req.body;
     try {
-      await FieldService.updateField(req.params.fieldId, { label, name, type, options, required });
+      await FieldService.updateField(req.params.fieldId, { label, name, type });
       res.flash('success', 'Campo atualizado.');
     } catch (err) {
       res.flash('error', err.message);

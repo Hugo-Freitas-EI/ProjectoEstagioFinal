@@ -18,10 +18,21 @@
           </div>
           <div class="mb-4">
             <label class="form-label">Post Type *</label>
-            <input type="text" name="post_type" class="form-control"
-              value="<%= group ? group.post_type : '' %>"
-              placeholder="post, page, produto, evento..." required>
-            <div class="form-text">Campos aparecem no editor deste post type</div>
+            <select name="post_type" class="form-select" required>
+              <option value="">— selecionar tipo —</option>
+              <% if (typeof allPostTypes !== 'undefined') { %>
+                <% allPostTypes.forEach(function(pt) { %>
+                  <option value="<%= pt.name %>"
+                    <%= (group && group.post_type === pt.name) ? 'selected' : '' %>>
+                    <%= pt.label %><% if (pt.system) { %> (sistema)<% } %>
+                  </option>
+                <% }) %>
+              <% } %>
+            </select>
+            <div class="form-text">
+              Não vês o tipo?
+              <a href="/admin/post-types/new" target="_blank">Criar novo tipo de conteúdo</a>
+            </div>
           </div>
           <div class="d-flex gap-2">
             <button type="submit" class="btn btn-primary">
@@ -37,8 +48,11 @@
       <div class="card">
         <div class="card-header" style="color:var(--danger)">Zona de Perigo</div>
         <div class="card-body">
+          <p class="text-muted small mb-2">
+            Apaga o grupo, todos os campos e todos os valores em post_meta.
+          </p>
           <form method="POST" action="/admin/field-groups/<%= group.id %>/delete"
-            onsubmit="return confirm('Apagar grupo e todos os campos? Os valores em post_meta também serão apagados.')">
+            onsubmit="return confirm('Apagar grupo, campos e todos os valores?')">
             <button type="submit" class="btn btn-sm btn-outline-danger w-100">
               <i class="bi bi-trash me-1"></i> Apagar Grupo
             </button>
@@ -52,6 +66,7 @@
   <% if (isEdit) { %>
   <div class="col-lg-8">
 
+    <!-- Tabela de campos existentes -->
     <div class="card mb-3">
       <div class="card-header d-flex align-items-center justify-content-between">
         <span style="font-family:'DM Serif Display',serif">Campos</span>
@@ -66,21 +81,22 @@
       <% } else { %>
         <div class="table-responsive">
           <table class="table table-hover mb-0">
-            <thead><tr>
-              <th>Label</th><th>Name</th><th>Tipo</th><th>Opções</th><th class="text-end">Ações</th>
-            </tr></thead>
+            <thead>
+              <tr><th>Label</th><th>Name</th><th>Tipo</th><th class="text-end">Ações</th></tr>
+            </thead>
             <tbody>
               <% group.fields.forEach(function(f) { %>
-                <tr>
+                <tr id="row-<%= f.id %>">
                   <td style="font-weight:500"><%= f.label %></td>
-                  <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent2)"><%= f.name %></td>
+                  <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent2)">
+                    <%= f.name %>
+                  </td>
                   <td><span class="badge bg-secondary"><%= f.type %></span></td>
-                  <td class="text-muted" style="font-size:11px"><%= f.options || '—' %></td>
                   <td class="text-end">
                     <div class="d-flex gap-1 justify-content-end">
+                      <!-- Botão editar — expande painel inline -->
                       <button type="button" class="btn btn-sm btn-outline-secondary"
-                        onclick="openEditField(<%= JSON.stringify(f) %>)"
-                        data-bs-toggle="modal" data-bs-target="#editFieldModal">
+                        onclick="toggleEditPanel(<%= f.id %>, '<%= f.label.replace(/'/g, "\\'") %>', '<%= f.name %>', '<%= f.type %>')">
                         <i class="bi bi-pencil"></i>
                       </button>
                       <form method="POST"
@@ -93,6 +109,45 @@
                     </div>
                   </td>
                 </tr>
+
+                <!-- Painel de edição inline (oculto por defeito) -->
+                <tr id="edit-panel-<%= f.id %>" style="display:none">
+                  <td colspan="4" style="background:var(--surface2);padding:16px 18px">
+                    <form method="POST"
+                      action="/admin/field-groups/<%= group.id %>/fields/<%= f.id %>">
+                      <div class="row g-3 align-items-end">
+                        <div class="col-sm-4">
+                          <label class="form-label">Label</label>
+                          <input type="text" name="label" id="edit-label-<%= f.id %>"
+                            class="form-control form-control-sm" required>
+                        </div>
+                        <div class="col-sm-4">
+                          <label class="form-label">Name</label>
+                          <input type="text" name="name" id="edit-name-<%= f.id %>"
+                            class="form-control form-control-sm">
+                        </div>
+                        <div class="col-sm-2">
+                          <label class="form-label">Tipo</label>
+                          <select name="type" id="edit-type-<%= f.id %>"
+                            class="form-select form-select-sm">
+                            <% fieldTypes.forEach(function(t) { %>
+                              <option value="<%= t %>"><%= t %></option>
+                            <% }) %>
+                          </select>
+                        </div>
+                        <div class="col-sm-2 d-flex gap-1">
+                          <button type="submit" class="btn btn-sm btn-primary flex-fill">
+                            <i class="bi bi-check-lg"></i>
+                          </button>
+                          <button type="button" class="btn btn-sm btn-outline-secondary"
+                            onclick="closeEditPanel(<%= f.id %>)">
+                            <i class="bi bi-x-lg"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+                  </td>
+                </tr>
               <% }) %>
             </tbody>
           </table>
@@ -100,19 +155,24 @@
       <% } %>
     </div>
 
-    <!-- Adicionar campo -->
+    <!-- Adicionar novo campo -->
     <div class="card">
       <div class="card-header">Adicionar Campo</div>
       <div class="card-body">
         <form method="POST" action="/admin/field-groups/<%= group.id %>/fields">
-          <div class="row g-3">
+          <div class="row g-3 align-items-end">
             <div class="col-sm-5">
               <label class="form-label">Label *</label>
-              <input type="text" name="label" class="form-control" placeholder="Ex: Preço" required>
+              <input type="text" name="label" class="form-control"
+                placeholder="Ex: Preço" required>
             </div>
             <div class="col-sm-4">
-              <label class="form-label">Name</label>
-              <input type="text" name="name" class="form-control" placeholder="gerado do label">
+              <label class="form-label">
+                Name
+                <span class="text-muted" style="text-transform:none;letter-spacing:0">(auto)</span>
+              </label>
+              <input type="text" name="name" class="form-control"
+                placeholder="gerado do label">
             </div>
             <div class="col-sm-3">
               <label class="form-label">Tipo *</label>
@@ -122,19 +182,9 @@
                 <% }) %>
               </select>
             </div>
-            <div class="col-sm-8">
-              <label class="form-label">Opções <span class="text-muted" style="text-transform:none;letter-spacing:0">(select: val1,val2,val3)</span></label>
-              <input type="text" name="options" class="form-control" placeholder="Só para tipo select">
-            </div>
-            <div class="col-sm-2 d-flex align-items-end">
-              <div class="form-check mb-1">
-                <input type="checkbox" name="required" value="1" class="form-check-input" id="req-new">
-                <label class="form-check-label form-text" for="req-new">Obrig.</label>
-              </div>
-            </div>
-            <div class="col-sm-2 d-flex align-items-end">
-              <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-plus-lg"></i> Adicionar
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> Adicionar Campo
               </button>
             </div>
           </div>
@@ -147,62 +197,46 @@
 
 </div>
 
-<!-- Modal editar campo -->
-<% if (isEdit) { %>
-<div class="modal fade" id="editFieldModal" tabindex="-1">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Editar Campo</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <form method="POST" id="edit-field-form">
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Label</label>
-            <input type="text" name="label" id="ef-label" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Name</label>
-            <input type="text" name="name" id="ef-name" class="form-control">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Tipo</label>
-            <select name="type" id="ef-type" class="form-select">
-              <% fieldTypes.forEach(function(t) { %>
-                <option value="<%= t %>"><%= t %></option>
-              <% }) %>
-            </select>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Opções</label>
-            <input type="text" name="options" id="ef-options" class="form-control">
-          </div>
-          <div class="form-check">
-            <input type="checkbox" name="required" value="1" id="ef-required" class="form-check-input">
-            <label class="form-check-label" for="ef-required">Campo obrigatório</label>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-sm btn-primary">Guardar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
 <script>
-function openEditField(f) {
-  document.getElementById('ef-label').value   = f.label;
-  document.getElementById('ef-name').value    = f.name;
-  document.getElementById('ef-type').value    = f.type;
-  document.getElementById('ef-options').value = f.options || '';
-  document.getElementById('ef-required').checked = !!f.required;
-  document.getElementById('edit-field-form').action =
-    '/admin/field-groups/<%= group.id %>/fields/' + f.id;
+var activePanel = null;
+
+function toggleEditPanel(id, label, name, type) {
+  // Fechar painel anterior se for diferente
+  if (activePanel && activePanel !== id) {
+    closeEditPanel(activePanel);
+  }
+
+  var panel = document.getElementById('edit-panel-' + id);
+  if (!panel) return;
+
+  var isOpen = panel.style.display !== 'none';
+
+  if (isOpen) {
+    closeEditPanel(id);
+  } else {
+    // Preencher valores
+    document.getElementById('edit-label-' + id).value = label;
+    document.getElementById('edit-name-'  + id).value = name;
+    document.getElementById('edit-type-'  + id).value = type;
+
+    panel.style.display = 'table-row';
+    activePanel = id;
+
+    // Foco no label
+    document.getElementById('edit-label-' + id).focus();
+  }
 }
+
+function closeEditPanel(id) {
+  var panel = document.getElementById('edit-panel-' + id);
+  if (panel) panel.style.display = 'none';
+  if (activePanel === id) activePanel = null;
+}
+
+// Fechar com Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && activePanel) closeEditPanel(activePanel);
+});
 </script>
-<% } %>
 
 <%- include('../../partials/admin-layout-end') %>
