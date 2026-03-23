@@ -95,8 +95,11 @@
                   <td class="text-end">
                     <div class="d-flex gap-1 justify-content-end">
                       <!-- Botão editar — expande painel inline -->
-                      <button type="button" class="btn btn-sm btn-outline-secondary"
-                        onclick="toggleEditPanel(<%= f.id %>, '<%= f.label.replace(/'/g, "\\'") %>', '<%= f.name %>', '<%= f.type %>')">
+                      <button type="button" class="btn btn-sm btn-outline-secondary js-edit-field"
+                        data-id="<%= f.id %>"
+                        data-label="<%= f.label.replace(/'/g, '&#39;') %>"
+                        data-name="<%= f.name %>"
+                        data-type="<%= f.type %>">
                         <i class="bi bi-pencil"></i>
                       </button>
                       <form method="POST"
@@ -139,8 +142,8 @@
                           <button type="submit" class="btn btn-sm btn-primary flex-fill">
                             <i class="bi bi-check-lg"></i>
                           </button>
-                          <button type="button" class="btn btn-sm btn-outline-secondary"
-                            onclick="closeEditPanel(<%= f.id %>)">
+                          <button type="button" class="btn btn-sm btn-outline-secondary js-close-field"
+                            data-id="<%= f.id %>">
                             <i class="bi bi-x-lg"></i>
                           </button>
                         </div>
@@ -201,7 +204,6 @@
 var activePanel = null;
 
 function toggleEditPanel(id, label, name, type) {
-  // Fechar painel anterior se for diferente
   if (activePanel && activePanel !== id) {
     closeEditPanel(activePanel);
   }
@@ -209,20 +211,14 @@ function toggleEditPanel(id, label, name, type) {
   var panel = document.getElementById('edit-panel-' + id);
   if (!panel) return;
 
-  var isOpen = panel.style.display !== 'none';
-
-  if (isOpen) {
+  if (panel.style.display !== 'none') {
     closeEditPanel(id);
   } else {
-    // Preencher valores
     document.getElementById('edit-label-' + id).value = label;
     document.getElementById('edit-name-'  + id).value = name;
     document.getElementById('edit-type-'  + id).value = type;
-
     panel.style.display = 'table-row';
     activePanel = id;
-
-    // Foco no label
     document.getElementById('edit-label-' + id).focus();
   }
 }
@@ -232,6 +228,24 @@ function closeEditPanel(id) {
   if (panel) panel.style.display = 'none';
   if (activePanel === id) activePanel = null;
 }
+
+// Delegated click handlers (avoids EJS expressions inside onclick attributes)
+document.addEventListener('click', function(e) {
+  var editBtn  = e.target.closest('.js-edit-field');
+  var closeBtn = e.target.closest('.js-close-field');
+
+  if (editBtn) {
+    var id    = editBtn.dataset.id;
+    var label = editBtn.dataset.label;
+    var name  = editBtn.dataset.name;
+    var type  = editBtn.dataset.type;
+    toggleEditPanel(id, label, name, type);
+  }
+
+  if (closeBtn) {
+    closeEditPanel(closeBtn.dataset.id);
+  }
+});
 
 // Fechar com Escape
 document.addEventListener('keydown', function(e) {

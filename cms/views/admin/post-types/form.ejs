@@ -27,6 +27,7 @@
           <input type="text" name="name" id="pt-name" class="form-control"
             value="<%= postType ? postType.name : '' %>"
             placeholder="produto, evento, noticia"
+            data-edited="<%= isEdit ? 'true' : 'false' %>"
             <%= isEdit ? 'readonly' : '' %>>
           <div class="form-text">
             <%= isEdit ? 'O name não pode ser alterado após criação.' : 'Gerado automaticamente do label. Só letras, números e _.' %>
@@ -98,10 +99,13 @@
 </div></div>
 
 <script>
-var nameEdited = <%= isEdit ? 'true' : 'false' %>;
-document.getElementById('pt-name')?.addEventListener('input', function() {
-  nameEdited = true;
-});
+var ptNameEl = document.getElementById('pt-name');
+var nameEdited = ptNameEl ? ptNameEl.dataset.edited === 'true' : false;
+if (ptNameEl) {
+  ptNameEl.addEventListener('input', function() {
+    nameEdited = true;
+  });
+}
 
 function gerarName(val) {
   if (nameEdited) return;
