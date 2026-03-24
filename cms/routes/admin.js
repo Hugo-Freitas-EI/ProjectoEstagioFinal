@@ -5,21 +5,6 @@ const CategoryController   = require('../controllers/categoryController');
 const TermController       = require('../controllers/termController');
 const FieldGroupController = require('../controllers/fieldGroupController');
 const db                   = require('../db');
-const path                 = require('path');
-const fs                   = require('fs');
-const multer               = require('multer');
-
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    const dir = path.join(__dirname, '../public/uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename(req, file, cb) {
-    cb(null, Date.now() + '-' + Math.round(Math.random() * 1e5) + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
 // Proteger tudo excepto login/register/logout
 router.use(function(req, res, next) {
@@ -69,44 +54,6 @@ router.post('/field-groups/:id/fields',                   FieldGroupController.a
 router.post('/field-groups/:id/fields/:fieldId',          FieldGroupController.updateField);
 router.post('/field-groups/:id/fields/:fieldId/delete',   FieldGroupController.deleteField);
 
-// ── MEDIA ─────────────────────────────────────────────────────────────────────
-router.get('/media', function(req, res) {
-  const uploadDir = path.join(__dirname, '../public/uploads');
-  var files = [];
-  if (fs.existsSync(uploadDir)) {
-    files = fs.readdirSync(uploadDir).map(function(filename) {
-      const stat = fs.statSync(path.join(uploadDir, filename));
-      return { filename, url: '/uploads/' + filename, size: stat.size, date: stat.mtime };
-    }).sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
-  }
-  res.render('admin/media', { pageTitle: 'Media', currentPage: 'media', files });
-});
-
-router.post('/media/upload', upload.single('file'), function(req, res) {
-  if (!req.file) { res.flash('error', 'Nenhum ficheiro recebido.'); return res.redirect('/admin/media'); }
-  res.flash('success', 'Ficheiro carregado: ' + req.file.originalname);
-  res.redirect('/admin/media');
-});
-
-router.post('/media/:filename/delete', function(req, res) {
-  const fp = path.join(__dirname, '../public/uploads', req.params.filename);
-  if (fs.existsSync(fp)) { fs.unlinkSync(fp); res.flash('success', 'Ficheiro apagado.'); }
-  else res.flash('error', 'Ficheiro não encontrado.');
-  res.redirect('/admin/media');
-});
-
-// API para media (biblioteca no editor)
-router.get('/media/api/list', function(req, res) {
-  const uploadDir = path.join(__dirname, '../public/uploads');
-  var files = [];
-  if (fs.existsSync(uploadDir)) {
-    files = fs.readdirSync(uploadDir).map(function(filename) {
-      const stat = fs.statSync(path.join(uploadDir, filename));
-      return { titulo: filename, ficheiro_url: '/uploads/' + filename, size: stat.size };
-    }).sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
-  }
-  res.json({ files });
-});
 
 // ── USERS ─────────────────────────────────────────────────────────────────────
 router.get('/users', async function(req, res) {

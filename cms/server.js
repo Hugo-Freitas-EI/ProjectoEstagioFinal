@@ -43,7 +43,8 @@ app.use('/admin',                    require('./routes/auth'));
 app.use('/admin/post-types',         require('./routes/postTypes'));
 app.use('/admin/cpt/:postType',      require('./routes/cpt'));         // rota dinâmica CPT
 app.use('/admin/posts/:id/revisions',require('./routes/admin-revisions'));
-app.use('/admin',                    require('./routes/admin'));         // media, users, categories, etc
+app.use('/admin/media',              require('./routes/media'));        // media (BD)
+app.use('/admin',                    require('./routes/admin'));         // users, categories, etc
 app.use('/',                         require('./routes/frontend'));
 
 // 404
