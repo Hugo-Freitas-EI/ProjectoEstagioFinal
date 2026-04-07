@@ -219,8 +219,8 @@
   </style>
 
   <% const total=revisions.length; const section=(typeof currentPage !=='undefined' && currentPage==='pages' ) ? 'pages'
-    : 'posts' ; const base=`/admin/${section}/${postId}/revisions/compare`; const editUrl=`/admin/posts/${postId}/edit`;
-    const restoreBase=`/admin/posts/${postId}/revisions`; const prevPos=currentPos - 1; const nextPos=currentPos + 1;
+    : 'posts' ; const base=`/admin/${section}/${postId}/revisions/compare`;
+    const restoreBase=`/admin/${section}/${postId}/revisions`; const prevPos=currentPos - 1; const nextPos=currentPos + 1;
     const prevUrl=prevPos>= 0 ? `${base}?pos=${prevPos}` : null;
     const nextUrl = nextPos < total ? `${base}?pos=${nextPos}` : null; const leftInfo=revisions.find(r=> Number(r.ID ||
       r.id) === Number(leftId));
@@ -515,3 +515,5 @@
           rebuildRight();
         })();
       </script>
+
+<%- include('../partials/admin-layout-end') %>

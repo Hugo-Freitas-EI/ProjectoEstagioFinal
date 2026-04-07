@@ -43,17 +43,21 @@ const upload = multer({
 // =============================
 router.get('/', async (req, res) => {
   try {
+    const folderId = req.query.folder || null;
+
     const [media] = await db.query(`
       SELECT 
         m.*,
         r.username
       FROM media m
       LEFT JOIN registers r ON m.autor_id = r.id
-      ORDER BY m.data_upload DESC
-    `);
+      WHERE m.parent_id <=> ?
+      ORDER BY m.mime_type IS NULL DESC, m.data_upload DESC
+    `, [folderId]);
 
     res.render('admin/media', {
-      files: media
+      files: media,
+      currentFolder: folderId
     });
 
   } catch (error) {
@@ -67,16 +71,17 @@ router.get('/', async (req, res) => {
 // =============================
 router.get('/api/list', async (req, res) => {
   try {
-    const [media] = await db.query(`
-      SELECT 
-        m.*,
-        r.username
+    const folderId = req.query.folder || null;
+
+    const [items] = await db.query(`
+      SELECT m.*, r.username
       FROM media m
       LEFT JOIN registers r ON m.autor_id = r.id
-      ORDER BY m.data_upload DESC
-    `);
+      WHERE m.parent_id <=> ?
+      ORDER BY m.mime_type IS NULL DESC, m.data_upload DESC
+    `, [folderId]);
 
-    res.json({ files: media });
+    res.json({ files: items });
 
   } catch (error) {
     console.error(error);
@@ -93,6 +98,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const titulo = req.file.originalname;
     const ficheiroUrl = `/uploads/${req.file.filename}`;
+    const { folder_id } = req.body;
 
     // Verificação segura do ID do utilizador
     const autorId = (req.user && req.user.id) ? req.user.id : null;
@@ -101,14 +107,14 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     // para garantir que não há erros de formatação na coluna DATETIME
     await db.query(
       `INSERT INTO media 
-       (titulo, ficheiro_url, mime_type, data_upload, autor_id, parent_id) 
-       VALUES (?, ?, ?, NOW(), ?, ?)`,
+   (titulo, ficheiro_url, mime_type, data_upload, autor_id, parent_id) 
+   VALUES (?, ?, ?, NOW(), ?, ?)`,
       [
         titulo,
         ficheiroUrl,
         req.file.mimetype,
         autorId,
-        null
+        folder_id || null
       ]
     );
 
@@ -169,6 +175,28 @@ router.post('/:id/update', async (req, res) => {
     res.redirect('/admin/media');
   } catch (error) {
     console.error('Erro ao atualizar media:', error);
+    res.redirect('/admin/media');
+  }
+});
+
+router.post('/folder', async (req, res) => {
+  try {
+    const { nome, parent_id } = req.body;
+
+    await db.query(
+      `INSERT INTO media (titulo, ficheiro_url, mime_type, data_upload, autor_id, parent_id)
+       VALUES (?, '', NULL, NOW(), ?, ?)`,
+      [
+        nome,
+        req.user?.id || null,
+        parent_id || null
+      ]
+    );
+
+    res.redirect('/admin/media?folder=' + (parent_id || ''));
+
+  } catch (err) {
+    console.error('Erro ao criar pasta:', err);
     res.redirect('/admin/media');
   }
 });

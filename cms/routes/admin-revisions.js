@@ -100,7 +100,8 @@ router.get('/admin/:section(posts|pages)/:id/revisions/compare', requireAuth, as
   const total = revisionsChron.length;
 
   const base = `/admin/${section}/${postId}/revisions/compare`;
-  const editUrl = `/admin/${section}/${postId}/edit`;
+  const postTypeName = section === 'pages' ? 'page' : 'post';
+  const editUrl = `/admin/cpt/${postTypeName}/${postId}/edit`;
   const restoreBase = `/admin/${section}/${postId}/revisions`;
 
   if (!total) {

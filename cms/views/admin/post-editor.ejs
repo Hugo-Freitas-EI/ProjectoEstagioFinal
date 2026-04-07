@@ -475,13 +475,18 @@
 
       <!-- Offcanvas - Biblioteca de Media -->
       <div class="offcanvas offcanvas-end" tabindex="-1" id="bibliotecaMediaOffcanvas"
-        style="width: 600px; background-color: #1a1d20;">
+        style="width:600px;background:var(--surface);border-left:1px solid var(--border)">
         <div class="offcanvas-header border-bottom"
-          style="background-color: #1a1d20; border-color: #2d3135 !important;">
-          <h5 class="offcanvas-title fw-bold text-white">Selecionar Imagem</h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas"></button>
+          style="background:var(--surface);border-color:var(--border) !important">
+          <div class="d-flex align-items-center gap-2">
+            <button id="media-back-btn" type="button" class="btn btn-sm btn-outline-secondary d-none">
+              <i class="bi bi-arrow-left"></i>
+            </button>
+            <h5 class="offcanvas-title fw-bold mb-0" style="color:var(--text)">Selecionar Imagem</h5>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
         </div>
-        <div class="offcanvas-body p-3" style="background-color: #0d0f10;">
+        <div class="offcanvas-body p-3" style="background:var(--bg)">
 
           <div id="media-loading" class="text-center py-5">
             <div class="spinner-border text-primary" role="status">
@@ -492,8 +497,8 @@
           <div id="media-grid" class="row g-3 d-none"></div>
 
           <div id="media-empty" class="text-center py-5 d-none">
-            <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
-            <p class="text-muted mt-3">Nenhuma imagem disponível.</p>
+            <i class="bi bi-image" style="font-size:3rem;color:var(--text2)"></i>
+            <p class="mt-3" style="color:var(--text2)">Nenhum conteúdo disponível.</p>
             <a href="/admin/media" class="btn btn-sm btn-primary" target="_blank">
               <i class="bi bi-upload me-1"></i> Carregar Imagens
             </a>
@@ -503,15 +508,27 @@
       </div>
 
       <script>
+        // Estado da navegação de pastas
+        var mediaFolderStack = []; // pilha de IDs de pasta
+
         // Abrir biblioteca de media
         function abrirBibliotecaMedia() {
+          mediaFolderStack = [];
+          document.getElementById('media-back-btn').classList.add('d-none');
           var offcanvas = new bootstrap.Offcanvas(document.getElementById('bibliotecaMediaOffcanvas'));
           offcanvas.show();
-          carregarImagensMedia();
+          carregarMediaPasta(null);
         }
 
-        // Carregar imagens via AJAX
-        function carregarImagensMedia() {
+        document.getElementById('media-back-btn').addEventListener('click', function () {
+          mediaFolderStack.pop();
+          var parentId = mediaFolderStack.length ? mediaFolderStack[mediaFolderStack.length - 1] : null;
+          if (!mediaFolderStack.length) this.classList.add('d-none');
+          carregarMediaPasta(parentId);
+        });
+
+        // Carregar conteúdo de uma pasta via AJAX
+        function carregarMediaPasta(folderId) {
           var loadingEl = document.getElementById('media-loading');
           var gridEl = document.getElementById('media-grid');
           var emptyEl = document.getElementById('media-empty');
@@ -520,51 +537,74 @@
           gridEl.classList.add('d-none');
           emptyEl.classList.add('d-none');
 
-          fetch('/admin/media/api/list')
-            .then(response => response.json())
-            .then(data => {
+          var url = '/admin/media/api/list' + (folderId ? '?folder=' + folderId : '');
+
+          fetch(url)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
               loadingEl.classList.add('d-none');
 
-              if (!data.files || data.files.length === 0) {
-                emptyEl.classList.remove('d-none');
-                return;
-              }
-
-              var images = data.files.filter(function (f) {
-                return /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(f.titulo);
-              });
-
-              if (images.length === 0) {
+              var items = data.files || [];
+              if (items.length === 0) {
                 emptyEl.classList.remove('d-none');
                 return;
               }
 
               gridEl.innerHTML = '';
-              images.forEach(function (img) {
+
+              items.forEach(function (item) {
                 var col = document.createElement('div');
                 col.className = 'col-6 col-md-4';
 
-                col.innerHTML = `
-                  <div class="card media-card-select shadow-sm h-100" style="cursor:pointer" onclick="selecionarImagemMedia('${img.ficheiro_url}', '${img.titulo.replace(/'/g, "\\'")}')">
-                    <img src="${img.ficheiro_url}" class="card-img-top" style="height:150px;object-fit:cover" loading="lazy" alt="${img.titulo}">
-                    <div class="card-body p-2 border-top bg-dark">
-                      <div class="text-truncate small text-white" title="${img.titulo}">
-                        ${img.titulo}
+                if (!item.mime_type) {
+                  // 📁 PASTA
+                  col.innerHTML = `
+                    <div class="card media-card-select shadow-sm h-100" style="cursor:pointer;background:var(--surface);border-color:var(--border)"
+                         onclick="entrarPastaMedia(${item.id})">
+                      <div class="card-img-top d-flex align-items-center justify-content-center"
+                           style="height:120px;font-size:3rem;background:var(--surface2)">📁</div>
+                      <div class="card-body p-2 border-top" style="background:var(--surface)">
+                        <div class="text-truncate small" style="color:var(--text)" title="${item.titulo}">
+                          ${item.titulo}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                `;
+                    </div>`;
+                } else if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(item.titulo)) {
+                  // 🖼 IMAGEM
+                  col.innerHTML = `
+                    <div class="card media-card-select shadow-sm h-100" style="cursor:pointer;border-color:var(--border)"
+                         onclick="selecionarImagemMedia('${item.ficheiro_url}', '${item.titulo.replace(/'/g, "\\'")}')">
+                      <img src="${item.ficheiro_url}" class="card-img-top" style="height:120px;object-fit:cover" loading="lazy" alt="${item.titulo}">
+                      <div class="card-body p-2 border-top" style="background:var(--surface)">
+                        <div class="text-truncate small" style="color:var(--text)" title="${item.titulo}">
+                          ${item.titulo}
+                        </div>
+                      </div>
+                    </div>`;
+                }
+                // ficheiros não-imagem não são mostrados na biblioteca do editor
 
-                gridEl.appendChild(col);
+                if (col.innerHTML) gridEl.appendChild(col);
               });
+
+              if (!gridEl.children.length) {
+                emptyEl.classList.remove('d-none');
+                return;
+              }
 
               gridEl.classList.remove('d-none');
             })
-            .catch(error => {
-              console.error('Erro ao carregar media:', error);
+            .catch(function (err) {
+              console.error('Erro ao carregar media:', err);
               loadingEl.classList.add('d-none');
               emptyEl.classList.remove('d-none');
             });
+        }
+
+        function entrarPastaMedia(folderId) {
+          mediaFolderStack.push(folderId);
+          document.getElementById('media-back-btn').classList.remove('d-none');
+          carregarMediaPasta(folderId);
         }
 
         // Selecionar e inserir imagem no Editor Visual

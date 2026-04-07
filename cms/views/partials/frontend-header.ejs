@@ -8,7 +8,7 @@
       <span class="navbar-toggler-icon"></span>
     </button>
     <div class="collapse navbar-collapse" id="navMenu">
-      <ul class="navbar-nav ms-auto">
+      <ul class="navbar-nav ms-auto align-items-center">
         <li class="nav-item">
           <a class="nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/' ? 'active' : '' %>" href="/">Início</a>
         </li>
@@ -20,6 +20,11 @@
             </li>
           <% }) %>
         <% } %>
+        <li class="nav-item ms-2">
+          <button id="theme-toggle" class="theme-btn" title="Alternar tema" aria-label="Alternar tema">
+            <i id="theme-icon" class="bi bi-sun-fill"></i>
+          </button>
+        </li>
       </ul>
     </div>
   </div>
