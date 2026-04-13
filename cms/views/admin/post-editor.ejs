@@ -353,7 +353,7 @@
                   <% } %>
 
                     <% if (typeof isEdit !=='undefined' && isEdit && post && post.post_status==='publish' ) { %>
-                      <a href="" target="" class="btn btn-outline-primary">
+                      <a href="/<%= postType === 'page' ? 'page' : 'post' %>/<%= post.post_name %>" target="_blank" class="btn btn-outline-primary">
                         <i class="bi bi-box-arrow-up-right me-1"></i> Ver no site
                       </a>
                       <!--          

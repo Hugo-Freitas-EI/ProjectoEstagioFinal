@@ -79,6 +79,10 @@
                     class="nav-item <%= currentPage === 'users' ? 'active' : '' %>">
                     <i class="bi bi-people"></i><span>Utilizadores</span>
                   </a>
+                  <a href="/admin/settings" title="Definições"
+                    class="nav-item <%= currentPage === 'settings' ? 'active' : '' %>">
+                    <i class="bi bi-gear"></i><span>Definições</span>
+                  </a>
 
       </nav>
 
@@ -110,7 +114,7 @@
           <button id="theme-toggle" class="btn btn-sm btn-outline-secondary" title="Alternar tema">
             <i id="theme-icon" class="bi bi-sun-fill"></i>
           </button>
-          <a href="" target="" class="btn btn-sm btn-outline-secondary">
+          <a href="/" target="_blank" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-box-arrow-up-right"></i> Ver Site
           </a>
           <a href="/admin/logout" class="btn btn-sm btn-outline-danger">

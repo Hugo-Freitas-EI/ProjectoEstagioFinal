@@ -129,6 +129,31 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 });
 
 // =============================
+// POST - UPLOAD (API / JSON)
+// Usado por pedidos fetch() que precisam de uma resposta JSON { url }
+// =============================
+router.post('/upload-api', upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Nenhum ficheiro recebido.' });
+
+  const ficheiroUrl = `/uploads/${req.file.filename}`;
+  const autorId     = (req.user && req.user.id) ? req.user.id : null;
+  const folderId    = req.body.folder_id || null;
+
+  try {
+    await db.query(
+      `INSERT INTO media (titulo, ficheiro_url, mime_type, data_upload, autor_id, parent_id)
+       VALUES (?, ?, ?, NOW(), ?, ?)`,
+      [req.file.originalname, ficheiroUrl, req.file.mimetype, autorId, folderId]
+    );
+    res.json({ url: ficheiroUrl });
+  } catch (error) {
+    console.error('ERRO NO INSERT (upload-api):', error);
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// =============================
 // POST - DELETE (CORRIGIDO)
 // =============================
 router.post('/:id/delete', async (req, res) => {

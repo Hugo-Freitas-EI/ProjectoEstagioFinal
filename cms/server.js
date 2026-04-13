@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const path         = require('path');
 const flash        = require('./middleware/flash');
 const sidebarData  = require('./middleware/sidebarData');
+const SiteSetting  = require('./models/SiteSetting');
 
 const app = express();
 
@@ -22,11 +23,20 @@ app.use(session({
 }));
 app.use(flash);
 
-// Variáveis globais para todas as views
-app.use(function(req, res, next) {
-  res.locals.user        = req.session.user || null;
-  res.locals.siteName    = process.env.SITE_NAME    || 'NodeCMS';
-  res.locals.siteTagline = process.env.SITE_TAGLINE || '';
+// Variáveis globais para todas as views (settings carregados da BD)
+app.use(async function(req, res, next) {
+  try {
+    const s = await SiteSetting.getAll();
+    res.locals.user        = req.session.user || null;
+    res.locals.siteName    = s.site_title       || process.env.SITE_NAME    || 'NodeCMS';
+    res.locals.siteTagline = s.site_description || process.env.SITE_TAGLINE || '';
+    res.locals.siteIcon    = s.site_icon        || null;
+  } catch {
+    res.locals.user        = req.session.user || null;
+    res.locals.siteName    = process.env.SITE_NAME    || 'NodeCMS';
+    res.locals.siteTagline = process.env.SITE_TAGLINE || '';
+    res.locals.siteIcon    = null;
+  }
   next();
 });
 
@@ -37,6 +47,21 @@ app.use('/admin', sidebarData);
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use('/css',     express.static(path.join(__dirname, 'public/css')));
 app.use('/js',      express.static(path.join(__dirname, 'public/js')));
+
+// ── robots.txt dinâmico ───────────────────────────────────────────────────────
+app.get('/robots.txt', async function(req, res) {
+  try {
+    const discourage = await SiteSetting.get('search_engine_visibility');
+    res.type('text/plain');
+    if (discourage === '1') {
+      res.send('User-agent: *\nDisallow: /');
+    } else {
+      res.send('User-agent: *\nDisallow:');
+    }
+  } catch {
+    res.type('text/plain').send('User-agent: *\nDisallow:');
+  }
+});
 
 // ── Rotas ─────────────────────────────────────────────────────────────────────
 app.use('/admin',                    require('./routes/auth'));

@@ -5,6 +5,7 @@ const CategoryController   = require('../controllers/categoryController');
 const TermController       = require('../controllers/termController');
 const FieldGroupController = require('../controllers/fieldGroupController');
 const db                   = require('../db');
+const SiteSetting          = require('../models/SiteSetting');
 
 // Proteger tudo excepto login/register/logout
 router.use(function(req, res, next) {
@@ -54,6 +55,34 @@ router.post('/field-groups/:id/fields',                   FieldGroupController.a
 router.post('/field-groups/:id/fields/:fieldId',          FieldGroupController.updateField);
 router.post('/field-groups/:id/fields/:fieldId/delete',   FieldGroupController.deleteField);
 
+
+// ── DEFINIÇÕES GERAIS ─────────────────────────────────────────────────────────
+router.get('/settings', async function(req, res) {
+  const settings = await SiteSetting.getAll();
+  res.render('admin/settings', {
+    pageTitle: 'Definições Gerais',
+    currentPage: 'settings',
+    settings
+  });
+});
+
+router.post('/settings', async function(req, res) {
+  const map = {
+    site_title:                 req.body.site_title                || null,
+    site_description:           req.body.site_description          || null,
+    site_icon:                  req.body.site_icon                 || null,
+    // checkbox: presente = '1', ausente = '0'
+    search_engine_visibility:   req.body.search_engine_visibility === '1' ? '1' : '0'
+  };
+
+  try {
+    await SiteSetting.setMany(map);
+    res.flash('success', 'Definições guardadas.');
+  } catch (e) {
+    res.flash('error', e.message);
+  }
+  res.redirect('/admin/settings');
+});
 
 // ── USERS ─────────────────────────────────────────────────────────────────────
 router.get('/users', async function(req, res) {

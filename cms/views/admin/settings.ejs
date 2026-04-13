@@ -1,0 +1,170 @@
+<%- include('../partials/admin-layout', { pageTitle: 'Definições Gerais', currentPage: 'settings' }) %>
+
+<form method="POST" action="/admin/settings">
+
+  <div class="card mb-4">
+    <div class="card-header fw-semibold">Opções gerais</div>
+    <div class="card-body" style="max-width:700px">
+
+      <%# ── Título do site ──────────────────────────────────────────────────── %>
+      <div class="mb-4">
+        <label for="site_title" class="form-label fw-semibold">Título do site</label>
+        <input
+          type="text"
+          id="site_title"
+          name="site_title"
+          class="form-control"
+          value="<%= settings.site_title || '' %>"
+          placeholder="NodeCMS"
+        >
+      </div>
+
+      <%# ── Descrição ───────────────────────────────────────────────────────── %>
+      <div class="mb-4">
+        <label for="site_description" class="form-label fw-semibold">Descrição</label>
+        <input
+          type="text"
+          id="site_description"
+          name="site_description"
+          class="form-control"
+          value="<%= settings.site_description || '' %>"
+          placeholder="Em poucas palavras, explique do que trata este site."
+        >
+        <div class="form-text">Em poucas palavras, explique do que trata este site.</div>
+      </div>
+
+      <%# ── Ícone do site ───────────────────────────────────────────────────── %>
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Ícone do site</label>
+        <div class="d-flex align-items-start gap-3 flex-wrap">
+
+          <%# Preview da imagem actual %>
+          <div id="icon-preview-wrap">
+            <% if (settings.site_icon) { %>
+              <img
+                id="icon-preview"
+                src="<%= settings.site_icon %>"
+                alt="Ícone actual"
+                style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--bs-border-color)"
+              >
+            <% } else { %>
+              <div
+                id="icon-preview"
+                style="width:64px;height:64px;border-radius:6px;border:2px dashed var(--bs-border-color);display:flex;align-items:center;justify-content:center;color:var(--bs-secondary-color)"
+              >
+                <i class="bi bi-image fs-4"></i>
+              </div>
+            <% } %>
+          </div>
+
+          <div>
+            <label for="site_icon_file" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-upload me-1"></i> Escolher ícone para o site
+            </label>
+            <input
+              type="file"
+              id="site_icon_file"
+              name="site_icon_file"
+              accept="image/*"
+              class="d-none"
+            >
+            <% if (settings.site_icon) { %>
+              <button type="button" id="remove-icon" class="btn btn-outline-danger btn-sm ms-2">
+                <i class="bi bi-x-lg me-1"></i> Remover
+              </button>
+            <% } %>
+            <div class="form-text mt-1">
+              O ícone do site é o que vê nos separadores do navegador e nas barras de favoritos.<br>
+              Dimensão recomendada: 512 × 512 píxeis.
+            </div>
+          </div>
+        </div>
+
+        <%# Campo oculto que guarda o caminho final (URL) do ícone %>
+        <input type="hidden" id="site_icon" name="site_icon" value="<%= settings.site_icon || '' %>">
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header fw-semibold">Visibilidade nos motores de pesquisa</div>
+    <div class="card-body" style="max-width:700px">
+      <div class="form-check">
+        <input
+          type="checkbox"
+          id="search_engine_visibility"
+          name="search_engine_visibility"
+          value="1"
+          class="form-check-input"
+          <%= settings.search_engine_visibility == '1' ? 'checked' : '' %>
+        >
+        <label for="search_engine_visibility" class="form-check-label">
+          Desencorajar os motores de pesquisa de indexarem este site
+        </label>
+      </div>
+      <div class="form-text mt-1">Cabe aos motores de pesquisa honrar este pedido.</div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">
+    <i class="bi bi-floppy me-1"></i> Guardar alterações
+  </button>
+</form>
+
+<%# ── JS: preview local + upload via /admin/media ──────────────────────────── %>
+<script>
+(function () {
+  const fileInput   = document.getElementById('site_icon_file');
+  const hiddenInput = document.getElementById('site_icon');
+  const removeBtn   = document.getElementById('remove-icon');
+  const previewWrap = document.getElementById('icon-preview-wrap');
+
+  function setPreview(src) {
+    previewWrap.innerHTML = src
+      ? `<img id="icon-preview" src="${src}" alt="Ícone" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--bs-border-color)">`
+      : `<div id="icon-preview" style="width:64px;height:64px;border-radius:6px;border:2px dashed var(--bs-border-color);display:flex;align-items:center;justify-content:center;color:var(--bs-secondary-color)"><i class="bi bi-image fs-4"></i></div>`;
+  }
+
+  fileInput.addEventListener('change', async function () {
+    const file = this.files[0];
+    if (!file) return;
+
+    // Show local preview immediately
+    const localUrl = URL.createObjectURL(file);
+    setPreview(localUrl);
+
+    // Upload to /admin/media (returns JSON { url })
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res  = await fetch('/admin/media/upload-api', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.url) {
+        hiddenInput.value = data.url;
+        setPreview(data.url);
+      } else {
+        alert('Erro ao carregar a imagem: ' + (data.error || 'desconhecido'));
+        hiddenInput.value = '';
+        setPreview('');
+      }
+    } catch (err) {
+      alert('Erro de rede ao carregar a imagem.');
+      hiddenInput.value = '';
+      setPreview('');
+    }
+  });
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', function () {
+      hiddenInput.value = '';
+      fileInput.value   = '';
+      setPreview('');
+      removeBtn.remove();
+    });
+  }
+}());
+</script>
+
+<%- include('../partials/admin-layout-end') %>
