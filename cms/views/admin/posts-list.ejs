@@ -85,10 +85,11 @@
                       <a href="/admin/cpt/<%= postType %>/<%= p.ID %>/edit" class="btn btn-sm btn-outline-secondary"><i
                           class="bi bi-pencil"></i></a>
                       <% if (p.post_status==='publish' ) { %>
-                        <a href="/<%= postType === 'page' ? 'page' : 'post' %>/<%= p.post_name %>"
-                    target="_blank" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-box-arrow-up-right"></i>
-                  </a>
+                        <% var _prefix = postType === 'page' ? 'page' : (postType === 'post' ? 'post' : postType); %>
+                        <a href="/<%= _prefix %>/<%= p.post_name %>" target="_blank"
+                          class="btn btn-sm btn-outline-secondary">
+                          <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
                         <% } %>
                           <form method="POST" action="/admin/cpt/<%= postType %>/<%= p.ID %>/delete"
                             onsubmit="return confirm('Apagar permanentemente?')">

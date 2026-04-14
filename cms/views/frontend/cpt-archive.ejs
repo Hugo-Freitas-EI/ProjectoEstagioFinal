@@ -1,12 +1,19 @@
-<%- include('../partials/frontend-head', { pageTitle: null }) %>
-<%- include('../partials/frontend-header', { currentPath: '/' }) %>
+<%- include('../partials/frontend-head', { pageTitle: postType.label }) %>
+<%- include('../partials/frontend-header', { currentPath: '/' + postType.name }) %>
 
 <div class="container" style="max-width:860px;padding:48px 24px">
 
+  <div class="cpt-archive-header">
+    <h1><%= postType.label %></h1>
+    <% if (postType.description) { %>
+      <p class="cpt-archive-desc"><%= postType.description %></p>
+    <% } %>
+  </div>
+
   <% if (posts.length === 0) { %>
     <div class="empty-state">
-      <div class="icon">📝</div>
-      <h2>Sem posts publicados</h2>
+      <div class="icon">📄</div>
+      <h2>Sem entradas publicadas</h2>
       <p>Em breve haverá conteúdo aqui.</p>
     </div>
   <% } else { %>
@@ -17,7 +24,6 @@
 
         <article class="post-card">
 
-          <%# Categorias/termos %>
           <% if (terms.length) { %>
             <div class="post-terms">
               <% terms.forEach(function(t) { %>
@@ -26,9 +32,10 @@
             </div>
           <% } %>
 
-          <h2><a href="/post/<%= post.post_name %>"><%= post.post_title %></a></h2>
+          <h2>
+            <a href="/<%= postType.name %>/<%= post.post_name %>"><%= post.post_title %></a>
+          </h2>
 
-          <%# Meta: autor + data %>
           <div class="post-meta">
             <% if (post.post_author_name) { %>
               <span><i class="bi bi-person"></i> <%= post.post_author_name %></span>
@@ -39,16 +46,17 @@
             </span>
           </div>
 
-          <%# Excerto %>
-          <p class="post-excerpt">
-            <% if (post.post_excerpt) { %>
-              <%= post.post_excerpt %>
-            <% } else { %>
-              <%= post.post_content.replace(/<[^>]+>/g, '').replace(/[#*`>\[\]]/g, '').replace(/\s+/g, ' ').trim().substring(0, 200) %>…
-            <% } %>
-          </p>
+          <% if (post.post_excerpt || post.post_content) { %>
+            <p class="post-excerpt">
+              <% if (post.post_excerpt) { %>
+                <%= post.post_excerpt %>
+              <% } else { %>
+                <%= post.post_content.replace(/<[^>]+>/g, '').replace(/[#*`>\[\]]/g, '').replace(/\s+/g, ' ').trim().substring(0, 200) %>…
+              <% } %>
+            </p>
+          <% } %>
 
-          <a class="read-more" href="/post/<%= post.post_name %>">Ler mais →</a>
+          <a class="read-more" href="/<%= postType.name %>/<%= post.post_name %>">Ver mais →</a>
 
         </article>
       <% }) %>
@@ -58,15 +66,15 @@
       <nav aria-label="Paginação">
         <ul class="pagination justify-content-center">
           <li class="page-item <%= currentPage === 1 ? 'disabled' : '' %>">
-            <a class="page-link" href="/?page=<%= currentPage - 1 %>">←</a>
+            <a class="page-link" href="/<%= postType.name %>?page=<%= currentPage - 1 %>">←</a>
           </li>
           <% for (var i = 1; i <= totalPages; i++) { %>
             <li class="page-item <%= i === currentPage ? 'active' : '' %>">
-              <a class="page-link" href="/?page=<%= i %>"><%= i %></a>
+              <a class="page-link" href="/<%= postType.name %>?page=<%= i %>"><%= i %></a>
             </li>
           <% } %>
           <li class="page-item <%= currentPage === totalPages ? 'disabled' : '' %>">
-            <a class="page-link" href="/?page=<%= currentPage + 1 %>">→</a>
+            <a class="page-link" href="/<%= postType.name %>?page=<%= currentPage + 1 %>">→</a>
           </li>
         </ul>
       </nav>

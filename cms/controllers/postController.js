@@ -132,13 +132,22 @@ const PostController = {
       return { ...rev, timeAgo, exactDateFormatted: exact, isAutoSave: rev.post_name.includes('autosave') };
     });
 
+    // URL pública do post consoante o tipo
+    let viewUrl = null;
+    if (post.post_status === 'publish' && post.post_name) {
+      if (post.post_type === 'post')        viewUrl = `/post/${post.post_name}`;
+      else if (post.post_type === 'page')   viewUrl = `/page/${post.post_name}`;
+      else                                  viewUrl = `/${post.post_type}/${post.post_name}`;
+    }
+
     res.render('admin/post-editor', {
       pageTitle: `Editar ${label}`,
       currentPage: postType,
       post, postId: post.ID, postType: post.post_type,
       isEdit: true, error: null,
       formAction: `/admin/cpt/${postType}/${post.ID}`,
-      allTerms, selectedTermIds, fieldGroups, revisions
+      allTerms, selectedTermIds, fieldGroups, revisions,
+      viewUrl
     });
   },
 

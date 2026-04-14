@@ -31,11 +31,13 @@ app.use(async function(req, res, next) {
     res.locals.siteName    = s.site_title       || process.env.SITE_NAME    || 'NodeCMS';
     res.locals.siteTagline = s.site_description || process.env.SITE_TAGLINE || '';
     res.locals.siteIcon    = s.site_icon        || null;
+    res.locals.siteNoIndex = s.search_engine_visibility === '1';
   } catch {
     res.locals.user        = req.session.user || null;
     res.locals.siteName    = process.env.SITE_NAME    || 'NodeCMS';
     res.locals.siteTagline = process.env.SITE_TAGLINE || '';
     res.locals.siteIcon    = null;
+    res.locals.siteNoIndex = false;
   }
   next();
 });

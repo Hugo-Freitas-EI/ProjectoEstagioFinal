@@ -353,15 +353,12 @@
                   <% } %>
 
                     <% if (typeof isEdit !=='undefined' && isEdit && post && post.post_status==='publish' ) { %>
-                      <a href="/<%= postType === 'page' ? 'page' : 'post' %>/<%= post.post_name %>" target="_blank" class="btn btn-outline-primary">
+                      <%
+                        var _prefix = postType === 'page' ? 'page' : (postType === 'post' ? 'post' : postType);
+                      %>
+                      <a href="/<%= _prefix %>/<%= post.post_name %>" target="_blank" class="btn btn-outline-primary">
                         <i class="bi bi-box-arrow-up-right me-1"></i> Ver no site
                       </a>
-                      <!--          
-                  <a href="/<%= postType === 'page' ? 'page' : 'post' %>/<%= post.post_name %>"
-            target="_blank" class="btn btn-ghost btn-sm"
-            style="width:100%;justify-content:center;margin-bottom:8px">
-            ↗ Ver no site
-          </a>-->
                       <% } %>
               </div>
             </div>
