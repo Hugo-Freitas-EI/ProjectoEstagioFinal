@@ -31,7 +31,7 @@ const FieldGroupController = {
       });
     }
     try {
-      const id = await FieldService.createGroup({ name: name.trim(), postType: post_type.trim() });
+      const id = await FieldService.createGroup({ name: name.trim(), postType: post_type.trim(), userId: req.user?.id });
       res.flash('success', 'Grupo criado.');
       res.redirect('/admin/field-groups/' + id + '/edit');
     } catch (err) {
@@ -55,7 +55,7 @@ const FieldGroupController = {
   async update(req, res) {
     const { name, post_type } = req.body;
     try {
-      await FieldService.updateGroup(req.params.id, { name, postType: post_type });
+      await FieldService.updateGroup(req.params.id, { name, postType: post_type, userId: req.user?.id });
       res.flash('success', 'Grupo atualizado.');
       res.redirect('/admin/field-groups/' + req.params.id + '/edit');
     } catch (err) {

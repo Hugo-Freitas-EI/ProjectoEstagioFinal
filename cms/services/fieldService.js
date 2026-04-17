@@ -20,12 +20,12 @@ const FieldService = {
     return group;
   },
 
-  async createGroup({ name, postType }) {
-    return FieldGroup.create({ name, postType });
+  async createGroup({ name, postType, userId = null }) {
+    return FieldGroup.create({ name, postType, createdBy: userId });
   },
 
-  async updateGroup(id, { name, postType }) {
-    await FieldGroup.update(id, { name, postType });
+  async updateGroup(id, { name, postType, userId = null }) {
+    await FieldGroup.update(id, { name, postType, updatedBy: userId });
   },
 
   async deleteGroup(id) {

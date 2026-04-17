@@ -18,14 +18,14 @@ const TaxonomyService = {
     return cats;
   },
 
-  async createCategory({ name, slug, description }) {
+  async createCategory({ name, slug, description, userId = null }) {
     const finalSlug = slug || makeSlug(name);
-    return Category.create({ name, slug: finalSlug, description });
+    return Category.create({ name, slug: finalSlug, description, createdBy: userId });
   },
 
-  async updateCategory(id, { name, slug, description }) {
+  async updateCategory(id, { name, slug, description, userId = null }) {
     const finalSlug = slug || makeSlug(name);
-    await Category.update(id, { name, slug: finalSlug, description });
+    await Category.update(id, { name, slug: finalSlug, description, updatedBy: userId });
   },
 
   async deleteCategory(id) {
@@ -38,14 +38,14 @@ const TaxonomyService = {
     return Term.findAll({ categoryId });
   },
 
-  async createTerm({ name, slug, description, categoryId }) {
+  async createTerm({ name, slug, description, categoryId, userId = null }) {
     const finalSlug = slug || makeSlug(name);
-    return Term.create({ name, slug: finalSlug, description, categoryId });
+    return Term.create({ name, slug: finalSlug, description, categoryId, createdBy: userId });
   },
 
-  async updateTerm(id, { name, slug, description, categoryId }) {
+  async updateTerm(id, { name, slug, description, categoryId, userId = null }) {
     const finalSlug = slug || makeSlug(name);
-    await Term.update(id, { name, slug: finalSlug, description, categoryId });
+    await Term.update(id, { name, slug: finalSlug, description, categoryId, updatedBy: userId });
   },
 
   async deleteTerm(id) {

@@ -35,7 +35,7 @@ const TermController = {
       });
     }
     try {
-      await TaxonomyService.createTerm({ name: name.trim(), slug, description, categoryId: category_id });
+      await TaxonomyService.createTerm({ name: name.trim(), slug, description, categoryId: category_id, userId: req.user?.id });
       res.flash('success', 'Termo criado.');
       res.redirect('/admin/terms');
     } catch (err) {
@@ -62,7 +62,7 @@ const TermController = {
   async update(req, res) {
     const { name, slug, description, category_id } = req.body;
     try {
-      await TaxonomyService.updateTerm(req.params.id, { name, slug, description, categoryId: category_id });
+      await TaxonomyService.updateTerm(req.params.id, { name, slug, description, categoryId: category_id, userId: req.user?.id });
       res.flash('success', 'Termo atualizado.');
       res.redirect('/admin/terms');
     } catch (err) {

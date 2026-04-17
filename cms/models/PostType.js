@@ -28,18 +28,18 @@ const PostType = {
     return [...PostType.SYSTEM, ...custom];
   },
 
-  async create({ name, label, description = '' }) {
+  async create({ name, label, description = '', createdBy = null }) {
     const [r] = await db.query(
-      'INSERT INTO post_types (name, label, description) VALUES (?,?,?)',
-      [name, label, description || null]
+      'INSERT INTO post_types (name, label, description, created_at, updated_at, created_by, updated_by) VALUES (?,?,?,NOW(),NOW(),?,?)',
+      [name, label, description || null, createdBy, createdBy]
     );
     return r.insertId;
   },
 
-  async update(id, { label, description }) {
+  async update(id, { label, description, updatedBy = null }) {
     await db.query(
-      'UPDATE post_types SET label=?, description=? WHERE id=?',
-      [label, description || null, id]
+      'UPDATE post_types SET label=?, description=?, updated_at=NOW(), updated_by=? WHERE id=?',
+      [label, description || null, updatedBy, id]
     );
   },
 

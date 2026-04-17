@@ -25,7 +25,7 @@ const CategoryController = {
       });
     }
     try {
-      await TaxonomyService.createCategory({ name: name.trim(), slug, description });
+      await TaxonomyService.createCategory({ name: name.trim(), slug, description, userId: req.user?.id });
       res.flash('success', 'Categoria criada.');
       res.redirect('/admin/categories');
     } catch (err) {
@@ -54,7 +54,7 @@ const CategoryController = {
       });
     }
     try {
-      await TaxonomyService.updateCategory(req.params.id, { name: name.trim(), slug, description });
+      await TaxonomyService.updateCategory(req.params.id, { name: name.trim(), slug, description, userId: req.user?.id });
       res.flash('success', 'Categoria atualizada.');
       res.redirect('/admin/categories');
     } catch (err) {

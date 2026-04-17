@@ -23,18 +23,18 @@ const Term = {
     return row || null;
   },
 
-  async create({ name, slug, description = '', categoryId }) {
+  async create({ name, slug, description = '', categoryId, createdBy = null }) {
     const [r] = await db.query(
-      'INSERT INTO terms (name, slug, description, category_id, created_at) VALUES (?,?,?,?,NOW())',
-      [name, slug, description, categoryId]
+      'INSERT INTO terms (name, slug, description, category_id, created_at, updated_at, created_by, updated_by) VALUES (?,?,?,?,NOW(),NOW(),?,?)',
+      [name, slug, description, categoryId, createdBy, createdBy]
     );
     return r.insertId;
   },
 
-  async update(id, { name, slug, description, categoryId }) {
+  async update(id, { name, slug, description, categoryId, updatedBy = null }) {
     await db.query(
-      'UPDATE terms SET name=?, slug=?, description=?, category_id=? WHERE id=?',
-      [name, slug, description, categoryId, id]
+      'UPDATE terms SET name=?, slug=?, description=?, category_id=?, updated_at=NOW(), updated_by=? WHERE id=?',
+      [name, slug, description, categoryId, updatedBy, id]
     );
   },
 

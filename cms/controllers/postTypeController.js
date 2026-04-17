@@ -44,7 +44,7 @@ const PostTypeController = {
     }
     const finalName = (name || '').trim() || makeSlug(label);
     try {
-      await PostType.create({ name: finalName, label: label.trim(), description });
+      await PostType.create({ name: finalName, label: label.trim(), description, createdBy: req.user?.id });
       await PostType.syncTaxonomies(finalName, [].concat(category_ids || []).filter(Boolean));
       res.flash('success', 'Tipo de conteúdo criado. Já aparece na sidebar.');
       res.redirect('/admin/post-types');
@@ -75,7 +75,7 @@ const PostTypeController = {
     const pt = await PostType.findByName(ptName);
     if (!pt || pt.system) return res.redirect('/admin/post-types');
     try {
-      await PostType.update(pt.id, { label, description });
+      await PostType.update(pt.id, { label, description, updatedBy: req.user?.id });
       await PostType.syncTaxonomies(ptName, [].concat(category_ids || []).filter(Boolean));
       res.flash('success', 'Tipo de conteúdo atualizado.');
       res.redirect('/admin/post-types');

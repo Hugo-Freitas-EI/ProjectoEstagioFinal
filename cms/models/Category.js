@@ -19,18 +19,18 @@ const Category = {
     return row || null;
   },
 
-  async create({ name, slug, description = '' }) {
+  async create({ name, slug, description = '', createdBy = null }) {
     const [r] = await db.query(
-      'INSERT INTO categories (name, slug, description) VALUES (?,?,?)',
-      [name, slug, description || null]
+      'INSERT INTO categories (name, slug, description, created_at, updated_at, created_by, updated_by) VALUES (?,?,?,NOW(),NOW(),?,?)',
+      [name, slug, description || null, createdBy, createdBy]
     );
     return r.insertId;
   },
 
-  async update(id, { name, slug, description }) {
+  async update(id, { name, slug, description, updatedBy = null }) {
     await db.query(
-      'UPDATE categories SET name = ?, slug = ?, description = ? WHERE id = ?',
-      [name, slug, description || null, id]
+      'UPDATE categories SET name = ?, slug = ?, description = ?, updated_at = NOW(), updated_by = ? WHERE id = ?',
+      [name, slug, description || null, updatedBy, id]
     );
   },
 

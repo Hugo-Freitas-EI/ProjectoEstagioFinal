@@ -22,16 +22,19 @@ const FieldGroup = {
     return rows;
   },
 
-  async create({ name, postType }) {
+  async create({ name, postType, createdBy = null }) {
     const [r] = await db.query(
-      'INSERT INTO field_groups (name, post_type) VALUES (?,?)',
-      [name, postType]
+      'INSERT INTO field_groups (name, post_type, created_at, updated_at, created_by, updated_by) VALUES (?,?,NOW(),NOW(),?,?)',
+      [name, postType, createdBy, createdBy]
     );
     return r.insertId;
   },
 
-  async update(id, { name, postType }) {
-    await db.query('UPDATE field_groups SET name=?, post_type=? WHERE id=?', [name, postType, id]);
+  async update(id, { name, postType, updatedBy = null }) {
+    await db.query(
+      'UPDATE field_groups SET name=?, post_type=?, updated_at=NOW(), updated_by=? WHERE id=?',
+      [name, postType, updatedBy, id]
+    );
   },
 
   async delete(id) {
