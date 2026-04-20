@@ -31,7 +31,7 @@ a { color: inherit; text-decoration: none; }
 .nav-item.active { color:var(--accent2) !important; background:rgba(124,111,205,.1); border-left-color:var(--accent2); }
 .nav-item i { width:18px; text-align:center; font-size:15px; flex-shrink:0; }
 .nav-item span { overflow:hidden; transition:opacity .2s; }
-.sidebar-footer { padding:14px 20px; border-top:1px solid var(--border); overflow:hidden; }
+.sidebar-footer { padding:14px 20px; border-top:1px solid var(--border); overflow:hidden; padding-bottom:50px; }
 .sidebar-footer .username { color:var(--text); font-size:13px; font-weight:500; white-space:nowrap; }
 .sidebar-footer .role { font-size:11px; color:var(--text2); text-transform:capitalize; margin-top:2px; white-space:nowrap; }
 .user-avatar { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,var(--accent),var(--accent2)); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; color:#fff; flex-shrink:0; }

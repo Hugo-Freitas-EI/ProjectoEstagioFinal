@@ -1,0 +1,564 @@
+<%- include('../../partials/admin-layout', { pageTitle: pageTitle, currentPage: 'menus' }) %>
+
+<style>
+/* ── Accordion ──────────────────────────────────────────────────── */
+.accordion-item           { background:var(--surface)  !important; border-color:var(--border) !important; }
+.accordion-button         { background:var(--surface2) !important; color:var(--text) !important;
+                            font-size:13px !important; font-weight:500 !important; box-shadow:none !important; }
+.accordion-button:not(.collapsed) { color:var(--accent2) !important; }
+.accordion-button::after  { filter:brightness(0) invert(.6); }
+.accordion-collapse,
+.accordion-body           { background:var(--surface) !important; padding:12px !important; }
+.form-check-input         { background-color:var(--bg) !important; border-color:var(--border) !important; }
+.form-check-input:checked { background-color:var(--accent) !important; border-color:var(--accent) !important; }
+
+/* ── Menu item rows ─────────────────────────────────────────────── */
+#mi-root { list-style:none; margin:0; padding:0; min-height:40px; }
+
+.mi-row   { margin-bottom:3px; }
+
+.mi-header {
+  display:flex; align-items:center; gap:8px;
+  padding:8px 10px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  transition:border-color .15s;
+  /* padding-left overridden inline per depth */
+}
+.mi-header:hover { border-color:var(--accent); }
+
+.mi-drag  { color:var(--text2); cursor:grab; font-size:17px; flex-shrink:0; line-height:1; }
+.mi-drag:active { cursor:grabbing; }
+
+.mi-info  { flex:1; min-width:0; }
+.mi-name  { display:block; font-size:13px; font-weight:500; color:var(--text);
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.mi-url   { font-size:11px; color:var(--text2); font-family:'DM Mono',monospace;
+            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; }
+
+.mi-toggle { background:none; border:none; color:var(--text2); padding:2px 4px;
+             cursor:pointer; flex-shrink:0; font-size:13px; line-height:1; transition:color .15s; }
+.mi-toggle:hover { color:var(--text); }
+
+.mi-edit {
+  display:none;
+  padding:12px 14px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  margin-top:3px;
+  margin-bottom:3px;
+  /* margin-left set inline per depth */
+}
+
+/* Drag states */
+.mi-dragging .mi-header { opacity:.25; }
+.mi-drag-clone {
+  position:fixed; pointer-events:none; z-index:9999;
+  opacity:.92;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);
+  border:1px solid var(--accent2) !important;
+  background:var(--surface2) !important;
+  border-radius:var(--radius) !important;
+}
+.mi-indicator {
+  list-style:none; height:3px;
+  background:var(--accent2); border-radius:3px;
+  margin:1px 0; pointer-events:none;
+  transition:margin-left .08s;
+}
+
+.menu-hint { font-size:11px; font-family:'DM Mono',monospace; color:var(--text2); margin-bottom:12px; }
+</style>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+  <a href="/admin/menus" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i></a>
+  <span class="text-muted small">A editar: <strong style="color:var(--text)"><%= menu.nome %></strong></span>
+  <% if (allMenus.length > 1) { %>
+    <select class="form-select form-select-sm w-auto ms-auto"
+      onchange="location='/admin/menus/'+this.value+'/edit'">
+      <% allMenus.forEach(function(m) { %>
+        <option value="<%= m.id %>" <%= m.id === menu.id ? 'selected' : '' %>><%= m.nome %></option>
+      <% }) %>
+    </select>
+  <% } %>
+</div>
+
+<div style="display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start">
+
+  <!-- ── LEFT ──────────────────────────────────────────────────── -->
+  <div>
+    <div class="accordion" id="acc">
+
+      <!-- Pages -->
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#aPages">
+            Páginas
+          </button>
+        </h2>
+        <div id="aPages" class="accordion-collapse collapse show">
+          <div class="accordion-body">
+            <% if (!pages.length) { %>
+              <p class="small text-muted mb-0">Sem páginas publicadas.</p>
+            <% } else { %>
+              <form method="POST" action="/admin/menus/<%= menu.id %>/items">
+                <input type="hidden" name="type" value="pages">
+                <div style="max-height:160px;overflow-y:auto">
+                  <% pages.forEach(function(p) { %>
+                    <label class="d-flex align-items-center gap-2 py-1">
+                      <input type="checkbox" name="page_ids" value="<%= p.id %>" class="form-check-input m-0">
+                      <span class="small" style="color:var(--text)"><%= p.nome %></span>
+                    </label>
+                  <% }) %>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                  <label class="d-flex align-items-center gap-1 mb-0 small text-muted">
+                    <input type="checkbox" class="form-check-input m-0" id="saPages"> Todas
+                  </label>
+                  <button type="submit" class="btn btn-sm btn-primary">Adicionar ao menu</button>
+                </div>
+              </form>
+            <% } %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Posts -->
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#aPosts">
+            Artigos
+          </button>
+        </h2>
+        <div id="aPosts" class="accordion-collapse collapse">
+          <div class="accordion-body">
+            <% if (!posts.length) { %>
+              <p class="small text-muted mb-0">Sem artigos publicados.</p>
+            <% } else { %>
+              <form method="POST" action="/admin/menus/<%= menu.id %>/items">
+                <input type="hidden" name="type" value="posts">
+                <div style="max-height:160px;overflow-y:auto">
+                  <% posts.forEach(function(p) { %>
+                    <label class="d-flex align-items-center gap-2 py-1">
+                      <input type="checkbox" name="post_ids" value="<%= p.id %>" class="form-check-input m-0">
+                      <span class="small" style="color:var(--text)"><%= p.nome %></span>
+                    </label>
+                  <% }) %>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                  <label class="d-flex align-items-center gap-1 mb-0 small text-muted">
+                    <input type="checkbox" class="form-check-input m-0" id="saPosts"> Todos
+                  </label>
+                  <button type="submit" class="btn btn-sm btn-primary">Adicionar ao menu</button>
+                </div>
+              </form>
+            <% } %>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom link -->
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#aCustom">
+            Ligação personalizada
+          </button>
+        </h2>
+        <div id="aCustom" class="accordion-collapse collapse">
+          <div class="accordion-body">
+            <form method="POST" action="/admin/menus/<%= menu.id %>/items">
+              <input type="hidden" name="type" value="custom">
+              <div class="mb-2">
+                <label class="form-label">URL</label>
+                <input type="text" name="custom_url" class="form-control form-control-sm" placeholder="https://">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Texto do link</label>
+                <input type="text" name="custom_label" class="form-control form-control-sm">
+              </div>
+              <button type="submit" class="btn btn-sm btn-primary w-100">Adicionar ao menu</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="accordion-item">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#aCats">
+            Categorias
+          </button>
+        </h2>
+        <div id="aCats" class="accordion-collapse collapse">
+          <div class="accordion-body">
+            <% if (!categories.length) { %>
+              <p class="small text-muted mb-0">Sem categorias.</p>
+            <% } else { %>
+              <form method="POST" action="/admin/menus/<%= menu.id %>/items">
+                <input type="hidden" name="type" value="categories">
+                <div style="max-height:160px;overflow-y:auto">
+                  <% categories.forEach(function(c) { %>
+                    <label class="d-flex align-items-center gap-2 py-1">
+                      <input type="checkbox" name="cat_ids" value="<%= c.id %>" class="form-check-input m-0">
+                      <span class="small" style="color:var(--text)"><%= c.nome %></span>
+                    </label>
+                  <% }) %>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
+                  <label class="d-flex align-items-center gap-1 mb-0 small text-muted">
+                    <input type="checkbox" class="form-check-input m-0" id="saCats"> Todas
+                  </label>
+                  <button type="submit" class="btn btn-sm btn-primary">Adicionar ao menu</button>
+                </div>
+              </form>
+            <% } %>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── RIGHT ─────────────────────────────────────────────────── -->
+  <div>
+
+    <!-- Name / slug -->
+    <div class="card mb-3">
+      <div class="card-body py-3">
+        <form method="POST" action="/admin/menus/<%= menu.id %>">
+          <div class="d-flex gap-2 align-items-end">
+            <div style="flex:1">
+              <label class="form-label">Nome do menu</label>
+              <input type="text" name="nome" id="menuNome" class="form-control form-control-sm"
+                value="<%= menu.nome %>" required>
+            </div>
+            <div style="flex:1">
+              <label class="form-label">Slug</label>
+              <input type="text" name="slug" id="menuSlug" class="form-control form-control-sm"
+                value="<%= menu.slug %>">
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary" style="flex-shrink:0">Guardar nome</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Structure -->
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Estrutura do menu</span>
+        <form method="POST" action="/admin/menus/<%= menu.id %>/delete"
+          onsubmit="return confirm('Apagar o menu «<%= menu.nome %>» e todos os seus itens?')">
+          <button type="submit" class="btn btn-sm btn-outline-danger">
+            <i class="bi bi-trash me-1"></i>Eliminar menu
+          </button>
+        </form>
+      </div>
+      <div class="card-body">
+        <% if (items.length) { %>
+          <p class="menu-hint">
+            <i class="bi bi-arrows-move"></i>
+            Arrasta para cima/baixo para reordenar &nbsp;·&nbsp;
+            Arrasta para a direita/esquerda para aninhar ou desassociar
+          </p>
+        <% } %>
+        <ul id="mi-root"></ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script id="tree-data" type="application/json">
+  <%- JSON.stringify(tree) %>
+</script>
+
+<script>
+const MENU_ID  = parseInt('<%= menu.id %>', 10);
+
+// Parse the JSON tree from the hidden script tag above
+const TREE     = JSON.parse(document.getElementById('tree-data').textContent);
+
+const DEPTH_PX = 36;
+
+/* ── helpers ─────────────────────────────────────────────────────── */
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function slugify(s) {
+  return s.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9\s-]/g,'')
+    .replace(/\s+/g,'-').replace(/-+/g,'-')
+    .replace(/^-+|-+$/g,'');
+}
+
+/* ── flatten tree → [{...node, depth}] in depth-first order ─────── */
+function flatten(nodes, depth) {
+  return nodes.flatMap(function(n) {
+    return [Object.assign({}, n, {depth: depth})]
+      .concat(flatten(n.children || [], depth + 1));
+  });
+}
+
+/* ── render flat item ────────────────────────────────────────────── */
+function makeRow(n) {
+  const ml_hdr = (n.depth * DEPTH_PX) + 'px';
+  const ml_edit = (n.depth * DEPTH_PX + 10) + 'px';
+  const li = document.createElement('li');
+  li.className = 'mi-row';
+  li.dataset.id    = n.id;
+  li.dataset.depth = n.depth;
+  li.innerHTML = `
+    <div class="mi-header" style="margin-left:${ml_hdr}">
+      <i class="bi bi-grip-vertical mi-drag"></i>
+      <div class="mi-info">
+        <strong class="mi-name">${esc(n.nome)}</strong>
+        <span  class="mi-url">${esc(n.link)}</span>
+      </div>
+      <button type="button" class="mi-toggle" title="Editar">
+        <i class="bi bi-chevron-down"></i>
+      </button>
+    </div>
+    <div class="mi-edit" id="mi-edit-${n.id}" style="margin-left:${ml_edit}">
+      <form method="POST" action="/admin/menus/${MENU_ID}/items/${n.id}">
+        <div class="d-flex gap-2 mb-2">
+          <div style="flex:1">
+            <label class="form-label">Etiqueta de navegação</label>
+            <input type="text" name="nome" class="form-control form-control-sm"
+              value="${esc(n.nome)}" required>
+          </div>
+          <div style="flex:1">
+            <label class="form-label">URL</label>
+            <input type="text" name="link" class="form-control form-control-sm"
+              value="${esc(n.link)}" required>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <button type="submit" class="btn btn-sm btn-primary">Guardar</button>
+          <button type="button" class="btn btn-sm btn-link p-0 ms-auto"
+            style="color:var(--danger);text-decoration:none"
+            onclick="if(confirm('Remover?'))document.getElementById('del-${n.id}').submit()">
+            Remover
+          </button>
+        </div>
+      </form>
+      <form id="del-${n.id}" method="POST"
+        action="/admin/menus/${MENU_ID}/items/${n.id}/delete" style="display:none"></form>
+    </div>`;
+
+  /* toggle edit */
+  li.querySelector('.mi-toggle').addEventListener('click', function() {
+    const panel = li.querySelector('.mi-edit');
+    const icon  = this.querySelector('i');
+    const open  = panel.style.display === 'block';
+    panel.style.display = open ? 'none' : 'block';
+    icon.className = open ? 'bi bi-chevron-down' : 'bi bi-chevron-up';
+  });
+
+  return li;
+}
+
+/* ── initial render ─────────────────────────────────────────────── */
+const root = document.getElementById('mi-root');
+
+(function render() {
+  root.innerHTML = '';
+  const flat = flatten(TREE, 0);
+  if (!flat.length) {
+    root.innerHTML = '<li style="list-style:none;text-align:center;padding:24px 0;font-size:13px;color:var(--text2)">Sem itens. Adiciona pelo painel da esquerda.</li>';
+    return;
+  }
+  flat.forEach(function(n) { root.appendChild(makeRow(n)); });
+})();
+
+/* ── nested drag & drop ─────────────────────────────────────────── */
+(function () {
+  let dragging   = null;   // <li> being dragged
+  let subtree    = [];     // descendant <li>s temporarily removed
+  let clone      = null;   // visual ghost
+  let indicator  = null;   // blue depth-line
+  let startX     = 0;
+  let targetDepth = 0;
+  let targetBefore = null; // insert before this row (null = append)
+
+  function rows() {
+    return [...root.querySelectorAll('li.mi-row')];
+  }
+
+  /* collect all descendant rows (those immediately after `row` with higher depth) */
+  function getSubtree(row) {
+    const all = rows();
+    const idx   = all.indexOf(row);
+    const depth = parseInt(row.dataset.depth) || 0;
+    const sub   = [];
+    for (let i = idx + 1; i < all.length; i++) {
+      if ((parseInt(all[i].dataset.depth) || 0) > depth) sub.push(all[i]);
+      else break;
+    }
+    return sub;
+  }
+
+  root.addEventListener('mousedown', function(e) {
+    const handle = e.target.closest('.mi-drag');
+    if (!handle) return;
+    e.preventDefault();
+    startDrag(handle.closest('li.mi-row'), e);
+  });
+
+  function startDrag(row, e) {
+    dragging    = row;
+    startX      = e.clientX;
+    targetDepth = parseInt(row.dataset.depth) || 0;
+
+    /* remove subtree so it doesn't interfere with insertion detection */
+    subtree = getSubtree(row);
+    subtree.forEach(function(r) { r.remove(); });
+
+    /* dim original */
+    row.classList.add('mi-dragging');
+
+    /* ghost clone — margin-left already shifts rect, so left/width are exact */
+    const hdr  = row.querySelector('.mi-header');
+    const rect = hdr.getBoundingClientRect();
+    clone = hdr.cloneNode(true);
+    clone.className += ' mi-drag-clone';
+    Object.assign(clone.style, {
+      top:   rect.top + 'px',
+      left:  rect.left + 'px',
+      width: rect.width + 'px'
+    });
+    document.body.appendChild(clone);
+
+    /* depth indicator line */
+    indicator = document.createElement('li');
+    indicator.className = 'mi-indicator';
+    row.after(indicator);
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup',   onUp);
+    document.body.style.cursor     = 'grabbing';
+    document.body.style.userSelect = 'none';
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+
+    /* move ghost vertically */
+    const hdrH = dragging.querySelector('.mi-header').offsetHeight;
+    clone.style.top = (e.clientY - hdrH / 2) + 'px';
+
+    /* rows visible (excluding dragging item) */
+    const visible = rows().filter(function(r) { return r !== dragging; });
+
+    /* find insertion point */
+    targetBefore = null;
+    for (const r of visible) {
+      const rect = r.getBoundingClientRect();
+      if (e.clientY < rect.top + rect.height / 2) { targetBefore = r; break; }
+    }
+
+    /* compute target depth from horizontal position */
+    const listLeft = root.getBoundingClientRect().left;
+    const raw = Math.round((e.clientX - listLeft - 20) / DEPTH_PX);
+
+    /* clamp: 0 … aboveRow.depth + 1 */
+    const insertIdx  = targetBefore ? visible.indexOf(targetBefore) : visible.length;
+    const aboveRow   = insertIdx > 0 ? visible[insertIdx - 1] : null;
+    const aboveDepth = aboveRow ? (parseInt(aboveRow.dataset.depth) || 0) : -1;
+    targetDepth = Math.max(0, Math.min(raw, aboveDepth + 1));
+
+    /* position indicator */
+    indicator.style.marginLeft = (targetDepth * DEPTH_PX + 10) + 'px';
+    if (targetBefore) root.insertBefore(indicator, targetBefore);
+    else              root.appendChild(indicator);
+  }
+
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup',   onUp);
+    document.body.style.cursor     = '';
+    document.body.style.userSelect = '';
+    if (!dragging) return;
+
+    const depthDelta = targetDepth - (parseInt(dragging.dataset.depth) || 0);
+
+    /* insert dragged item at indicator position */
+    indicator.replaceWith(dragging);
+    dragging.classList.remove('mi-dragging');
+
+    /* update depth of dragged item */
+    applyDepth(dragging, targetDepth);
+
+    /* re-insert subtree with updated depths */
+    let prev = dragging;
+    subtree.forEach(function(r) {
+      const newDepth = Math.max(0, (parseInt(r.dataset.depth) || 0) + depthDelta);
+      applyDepth(r, newDepth);
+      prev.after(r);
+      prev = r;
+    });
+
+    if (clone) { clone.remove(); clone = null; }
+    dragging = null; subtree = [];
+
+    saveOrder();
+  }
+
+  function applyDepth(row, depth) {
+    row.dataset.depth = depth;
+    row.querySelector('.mi-header').style.marginLeft = (depth * DEPTH_PX) + 'px';
+    const edit = row.querySelector('.mi-edit');
+    if (edit) edit.style.marginLeft = (depth * DEPTH_PX + 10) + 'px';
+  }
+
+  function saveOrder() {
+    const all   = rows();
+    const items = all.map(function(row, i) {
+      const depth = parseInt(row.dataset.depth) || 0;
+      let parentId = null;
+      if (depth > 0) {
+        for (let j = all.indexOf(row) - 1; j >= 0; j--) {
+          if ((parseInt(all[j].dataset.depth) || 0) === depth - 1) {
+            parentId = parseInt(all[j].dataset.id);
+            break;
+          }
+        }
+      }
+      return { id: parseInt(row.dataset.id), ordem: i, parent_id: parentId };
+    });
+
+    fetch('/admin/menus/' + MENU_ID + '/reorder', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ items: items })
+    }).catch(console.error);
+  }
+})();
+
+/* ── auto-slug ──────────────────────────────────────────────────── */
+(function () {
+  const nome = document.getElementById('menuNome');
+  const slug = document.getElementById('menuSlug');
+  if (!nome || !slug) return;
+  nome.addEventListener('input', function() { slug.value = slugify(nome.value); });
+})();
+
+/* ── select-all checkboxes ──────────────────────────────────────── */
+[['saPages','page_ids'],['saPosts','post_ids'],['saCats','cat_ids']].forEach(function(p) {
+  const t = document.getElementById(p[0]);
+  if (!t) return;
+  t.addEventListener('change', function() {
+    t.closest('.accordion-body')
+      .querySelectorAll('input[name="' + p[1] + '"]')
+      .forEach(function(cb) { cb.checked = t.checked; });
+  });
+});
+</script>
+
+<%- include('../../partials/admin-layout-end') %>

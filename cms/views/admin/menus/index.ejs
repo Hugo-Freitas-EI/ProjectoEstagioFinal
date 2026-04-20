@@ -1,0 +1,52 @@
+<%- include('../../partials/admin-layout', { pageTitle: 'Menus', currentPage: 'menus' }) %>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <span class="text-muted"><%= menus.length %> menu(s)</span>
+  <a href="/admin/menus/new" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Novo Menu
+  </a>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Slug</th>
+          <th class="text-end">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (!menus.length) { %>
+          <tr>
+            <td colspan="3" class="text-center py-4 text-muted">
+              Sem menus. <a href="/admin/menus/new" style="color:var(--accent2)">Criar o primeiro</a>
+            </td>
+          </tr>
+        <% } %>
+        <% menus.forEach(function(m) { %>
+          <tr>
+            <td style="font-weight:500;color:var(--accent2)"><%= m.nome %></td>
+            <td class="text-muted" style="font-family:'DM Mono',monospace;font-size:12px"><%= m.slug %></td>
+            <td class="text-end">
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="/admin/menus/<%= m.id %>/edit" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <form method="POST" action="/admin/menus/<%= m.id %>/delete"
+                  onsubmit="return confirm('Apagar menu e todos os seus itens?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../../partials/admin-layout-end') %>

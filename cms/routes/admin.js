@@ -4,6 +4,7 @@ const { requireAuth }      = require('../middleware/auth');
 const CategoryController   = require('../controllers/categoryController');
 const TermController       = require('../controllers/termController');
 const FieldGroupController = require('../controllers/fieldGroupController');
+const MenuController       = require('../controllers/menuController');
 const db                   = require('../db');
 const SiteSetting          = require('../models/SiteSetting');
 
@@ -43,6 +44,20 @@ router.post('/terms',             TermController.create);
 router.get('/terms/:id/edit',     TermController.editForm);
 router.post('/terms/:id',         TermController.update);
 router.post('/terms/:id/delete',  TermController.destroy);
+
+// ── MENUS ─────────────────────────────────────────────────────────────────────
+router.get('/menus',                                    MenuController.list);
+router.get('/menus/new',                                MenuController.newForm);
+router.post('/menus',                                   MenuController.create);
+router.get('/menus/:id/edit',                           MenuController.editForm);
+router.post('/menus/:id',                               MenuController.update);
+router.post('/menus/:id/delete',                        MenuController.destroy);
+router.post('/menus/:id/items',                         MenuController.addItems);
+router.post('/menus/:id/reorder',                       MenuController.reorder);
+router.post('/menus/:id/items/:itemId/indent',          MenuController.indentItem);
+router.post('/menus/:id/items/:itemId/outdent',         MenuController.outdentItem);
+router.post('/menus/:id/items/:itemId/delete',          MenuController.deleteItem);
+router.post('/menus/:id/items/:itemId',                 MenuController.updateItem);
 
 // ── CUSTOM FIELDS ─────────────────────────────────────────────────────────────
 router.get('/field-groups',                               FieldGroupController.list);
