@@ -57,6 +57,7 @@ router.post('/menus/:id/reorder',                       MenuController.reorder);
 router.post('/menus/:id/items/:itemId/indent',          MenuController.indentItem);
 router.post('/menus/:id/items/:itemId/outdent',         MenuController.outdentItem);
 router.post('/menus/:id/items/:itemId/delete',          MenuController.deleteItem);
+router.post('/menus/:id/locations',                     MenuController.saveLocations);
 router.post('/menus/:id/items/:itemId',                 MenuController.updateItem);
 
 // ── CUSTOM FIELDS ─────────────────────────────────────────────────────────────

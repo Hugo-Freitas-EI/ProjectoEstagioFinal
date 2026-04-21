@@ -1,4 +1,6 @@
-const MenuService = require('../services/menuService');
+const MenuService   = require('../services/menuService');
+const PostType      = require('../models/PostType');
+const SiteSetting   = require('../models/SiteSetting');
 const db = require('../db');
 
 const MenuController = {
@@ -49,6 +51,18 @@ const MenuController = {
     const [categories] = await db.query('SELECT id, name as nome, slug FROM categories ORDER BY name');
     const allMenus = await MenuService.listMenus();
 
+    const customPostTypes = await PostType.findAll();
+    const cptData = await Promise.all(customPostTypes.map(async cpt => {
+      const [cptPosts] = await db.query(
+        "SELECT ID as id, post_title as nome, post_name as slug FROM wp_posts WHERE post_type=? AND post_status='publish' ORDER BY post_title LIMIT 50",
+        [cpt.name]
+      );
+      return { name: cpt.name, label: cpt.label, posts: cptPosts };
+    }));
+
+    const headerMenuId = await SiteSetting.get('menu_location_header');
+    const isHeaderMenu = String(headerMenuId) === String(req.params.id);
+
     res.render('admin/menus/edit', {
       pageTitle: 'Editar Menu — ' + data.nome,
       currentPage: 'menus',
@@ -58,7 +72,9 @@ const MenuController = {
       pages,
       posts,
       categories,
-      allMenus
+      allMenus,
+      cptData,
+      isHeaderMenu
     });
   },
 
@@ -100,13 +116,20 @@ const MenuController = {
         const ids = [].concat(req.body.page_ids || []);
         for (const id of ids) {
           const [[p]] = await db.query("SELECT post_title, post_name FROM wp_posts WHERE ID=?", [id]);
-          if (p) await MenuService.addItem(menuId, { nome: p.post_title, link: '/' + p.post_name });
+          if (p) await MenuService.addItem(menuId, { nome: p.post_title, link: '/page/' + p.post_name });
         }
       } else if (type === 'posts') {
         const ids = [].concat(req.body.post_ids || []);
         for (const id of ids) {
           const [[p]] = await db.query("SELECT post_title, post_name FROM wp_posts WHERE ID=?", [id]);
           if (p) await MenuService.addItem(menuId, { nome: p.post_title, link: '/post/' + p.post_name });
+        }
+      } else if (type === 'cpt') {
+        const { cpt_name, cpt_ids } = req.body;
+        const ids = [].concat(cpt_ids || []);
+        for (const id of ids) {
+          const [[p]] = await db.query("SELECT post_title, post_name FROM wp_posts WHERE ID=?", [id]);
+          if (p) await MenuService.addItem(menuId, { nome: p.post_title, link: '/' + cpt_name + '/' + p.post_name });
         }
       } else if (type === 'categories') {
         const ids = [].concat(req.body.cat_ids || []);
@@ -171,6 +194,21 @@ const MenuController = {
         await db.query('UPDATE menuitens SET parent_id = ? WHERE id = ?', [newParent.id, itemId]);
       }
     }
+    res.redirect('/admin/menus/' + menuId + '/edit');
+  },
+
+  async saveLocations(req, res) {
+    const menuId = req.params.id;
+    const isHeader = req.body.location_header === '1';
+    if (isHeader) {
+      await SiteSetting.set('menu_location_header', menuId);
+    } else {
+      const current = await SiteSetting.get('menu_location_header');
+      if (String(current) === String(menuId)) {
+        await SiteSetting.set('menu_location_header', null);
+      }
+    }
+    res.flash('success', 'Localização guardada.');
     res.redirect('/admin/menus/' + menuId + '/edit');
   },
 

@@ -1,13 +1,14 @@
-const express  = require('express');
-const router   = express.Router();
-const db       = require('../db');
-const { marked } = require('marked');
-const PostType = require('../models/PostType');
-const PostMeta = require('../models/PostMeta');
+const express      = require('express');
+const router       = express.Router();
+const db           = require('../db');
+const { marked }   = require('marked');
+const PostType     = require('../models/PostType');
+const PostMeta     = require('../models/PostMeta');
+const SiteSetting  = require('../models/SiteSetting');
 
 marked.setOptions({ breaks: true, gfm: true });
 
-// Carrega páginas para o menu de navegação
+// Carrega páginas para o menu de navegação (fallback)
 async function getNavPages() {
   try {
     const [pages] = await db.query(
@@ -16,6 +17,30 @@ async function getNavPages() {
     return pages;
   } catch { return []; }
 }
+
+function buildMenuTree(items, parentId = null) {
+  return items
+    .filter(i => (i.parent_id ?? null) == parentId)
+    .sort((a, b) => a.ordem - b.ordem)
+    .map(i => ({ ...i, children: buildMenuTree(items, i.id) }));
+}
+
+async function getHeaderMenu() {
+  try {
+    const menuId = await SiteSetting.get('menu_location_header');
+    if (!menuId) return null;
+    const [items] = await db.query(
+      'SELECT * FROM menuitens WHERE menu_id = ? ORDER BY ordem ASC', [menuId]
+    );
+    return buildMenuTree(items);
+  } catch { return null; }
+}
+
+// Injeta headerMenu em todos os pedidos frontend
+router.use(async (req, res, next) => {
+  res.locals.headerMenu = await getHeaderMenu();
+  next();
+});
 
 // Busca termos de uma lista de IDs de posts — query única
 async function getTermsForPosts(postIds) {

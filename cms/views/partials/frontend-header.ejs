@@ -1,3 +1,36 @@
+<%
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function renderMenuTree(items, depth) {
+  if (!items || !items.length) return '';
+  var html = '';
+  items.forEach(function(item) {
+    var hasChildren = item.children && item.children.length > 0;
+    if (depth === 0) {
+      if (hasChildren) {
+        html += '<li class="nav-item dropdown d-flex align-items-center">';
+        html += '<a class="nav-link" href="' + escHtml(item.link) + '">' + escHtml(item.nome) + '</a>';
+        html += '<button class="dropdown-toggle dropdown-toggle-split btn btn-link nav-link px-1" data-bs-toggle="dropdown" aria-expanded="false"><span class="visually-hidden">Expandir</span></button>';
+        html += '<ul class="dropdown-menu">' + renderMenuTree(item.children, 1) + '</ul>';
+        html += '</li>';
+      } else {
+        html += '<li class="nav-item"><a class="nav-link" href="' + escHtml(item.link) + '">' + escHtml(item.nome) + '</a></li>';
+      }
+    } else {
+      if (hasChildren) {
+        html += '<li class="dropdown-submenu">';
+        html += '<a class="dropdown-item d-flex justify-content-between align-items-center" href="' + escHtml(item.link) + '">' + escHtml(item.nome) + '<i class="bi bi-chevron-right" style="font-size:10px;opacity:.6"></i></a>';
+        html += '<ul class="dropdown-menu dropdown-submenu-panel">' + renderMenuTree(item.children, depth + 1) + '</ul>';
+        html += '</li>';
+      } else {
+        html += '<li><a class="dropdown-item" href="' + escHtml(item.link) + '">' + escHtml(item.nome) + '</a></li>';
+      }
+    }
+  });
+  return html;
+}
+%>
 <nav class="navbar navbar-expand-lg sticky-top">
   <div class="container" style="max-width:860px">
     <a class="navbar-brand" href="/">
@@ -9,16 +42,20 @@
     </button>
     <div class="collapse navbar-collapse" id="navMenu">
       <ul class="navbar-nav ms-auto align-items-center">
-        <li class="nav-item">
-          <a class="nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/' ? 'active' : '' %>" href="/">Início</a>
-        </li>
-        <% if (typeof navPages !== 'undefined') { %>
-          <% navPages.forEach(function(p) { %>
-            <li class="nav-item">
-              <a class="nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/page/' + p.post_name ? 'active' : '' %>"
-                href="/page/<%= p.post_name %>"><%= p.post_title %></a>
-            </li>
-          <% }) %>
+        <% if (typeof headerMenu !== 'undefined' && headerMenu && headerMenu.length) { %>
+          <%- renderMenuTree(headerMenu, 0) %>
+        <% } else { %>
+          <li class="nav-item">
+            <a class="nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/' ? 'active' : '' %>" href="/">Início</a>
+          </li>
+          <% if (typeof navPages !== 'undefined') { %>
+            <% navPages.forEach(function(p) { %>
+              <li class="nav-item">
+                <a class="nav-link <%= typeof currentPath !== 'undefined' && currentPath === '/page/' + p.post_name ? 'active' : '' %>"
+                  href="/page/<%= p.post_name %>"><%= p.post_title %></a>
+              </li>
+            <% }) %>
+          <% } %>
         <% } %>
         <li class="nav-item ms-2">
           <button id="theme-toggle" class="theme-btn" title="Alternar tema" aria-label="Alternar tema">

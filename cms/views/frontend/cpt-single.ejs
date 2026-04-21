@@ -65,26 +65,6 @@
 
   </article>
 
-  <% if (prev || next) { %>
-    <nav class="post-nav" aria-label="Navegação entre entradas">
-      <div class="post-nav-prev">
-        <% if (prev) { %>
-          <a href="/<%= postType.name %>/<%= prev.post_name %>">
-            <span class="post-nav-label">← Anterior</span>
-            <span class="post-nav-title"><%= prev.post_title %></span>
-          </a>
-        <% } %>
-      </div>
-      <div class="post-nav-next">
-        <% if (next) { %>
-          <a href="/<%= postType.name %>/<%= next.post_name %>">
-            <span class="post-nav-label">Seguinte →</span>
-            <span class="post-nav-title"><%= next.post_title %></span>
-          </a>
-        <% } %>
-      </div>
-    </nav>
-  <% } %>
 
 </div>
 
