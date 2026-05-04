@@ -4,39 +4,51 @@
   <% if (error) { %><div class="alert alert-danger mb-3"><%= error %></div><% } %>
 
   <div class="card mb-3">
-    <div class="card-header"><%= isEdit ? 'Editar Tipo de Conteúdo' : 'Novo Tipo de Conteúdo' %></div>
+    <div class="card-header d-flex align-items-center gap-2">
+      <% if (typeof isSystem !== 'undefined' && isSystem) { %>
+        <i class="bi bi-lock" style="color:var(--text2);font-size:12px"></i>
+      <% } %>
+      <%= isEdit ? 'Editar Tipo de Conteúdo' : 'Novo Tipo de Conteúdo' %>
+    </div>
     <div class="card-body">
+
       <form method="POST" action="/admin/post-types<%= isEdit ? '/' + postType.name : '' %>">
 
         <div class="mb-3">
-          <label class="form-label">Label (aparece na sidebar) *</label>
+          <label class="form-label d-flex align-items-center gap-1">
+            Label (aparece na sidebar) *
+            <% if (typeof isSystem !== 'undefined' && isSystem) { %><i class="bi bi-lock-fill" style="font-size:10px;color:var(--text2)"></i><% } %>
+          </label>
           <input type="text" name="label" class="form-control"
             value="<%= postType ? postType.label : '' %>"
             placeholder="Ex: Produtos, Eventos, Noticias"
             oninput="gerarName(this.value)"
-            required autofocus>
+            <% if (typeof isSystem !== 'undefined' && isSystem) { %>readonly disabled<% } else { %>required autofocus<% } %>>
         </div>
 
         <div class="mb-3">
-          <label class="form-label">
+          <label class="form-label d-flex align-items-center gap-1">
             Name (slug interno)
-            <span class="text-muted" style="text-transform:none;letter-spacing:0;font-size:11px">
-              — usado no URL e na BD
-            </span>
+            <span class="text-muted" style="text-transform:none;letter-spacing:0;font-size:11px">— usado no URL e na BD</span>
+            <% if (typeof isSystem !== 'undefined' && isSystem) { %><i class="bi bi-lock-fill" style="font-size:10px;color:var(--text2)"></i><% } %>
           </label>
           <input type="text" name="name" id="pt-name" class="form-control"
             value="<%= postType ? postType.name : '' %>"
             placeholder="produto, evento, noticia"
             data-edited="<%= isEdit ? 'true' : 'false' %>"
-            <%= isEdit ? 'readonly' : '' %>>
+            readonly <% if (typeof isSystem !== 'undefined' && isSystem) { %>disabled<% } %>>
           <div class="form-text">
-            <%= isEdit ? 'O name não pode ser alterado após criação.' : 'Gerado automaticamente do label. Só letras, números e _.' %>
+            <% if (typeof isSystem !== 'undefined' && isSystem) { %>Tipo de sistema — não pode ser alterado.<% } else if (isEdit) { %>O name não pode ser alterado após criação.<% } else { %>Gerado automaticamente do label. Só letras, números e _.<% } %>
           </div>
         </div>
 
         <div class="mb-4">
-          <label class="form-label">Descrição</label>
-          <textarea name="description" class="form-control" style="min-height:70px"><%= postType ? (postType.description || '') : '' %></textarea>
+          <label class="form-label d-flex align-items-center gap-1">
+            Descrição
+            <% if (typeof isSystem !== 'undefined' && isSystem) { %><i class="bi bi-lock-fill" style="font-size:10px;color:var(--text2)"></i><% } %>
+          </label>
+          <textarea name="description" class="form-control" style="min-height:70px"
+            <% if (typeof isSystem !== 'undefined' && isSystem) { %>readonly disabled<% } %>><%= postType ? (postType.description || '') : '' %></textarea>
         </div>
 
         <!-- Taxonomias associadas -->
@@ -79,7 +91,7 @@
     </div>
   </div>
 
-  <% if (isEdit) { %>
+  <% if (isEdit && !(typeof isSystem !== 'undefined' && isSystem)) { %>
     <div class="card">
       <div class="card-header" style="color:var(--danger)">Zona de Perigo</div>
       <div class="card-body">

@@ -179,11 +179,11 @@ const MenuController = {
     const menuId = req.params.id;
     const itemId = parseInt(req.params.itemId);
     const [[item]] = await db.query(
-      'SELECT * FROM menuitens WHERE id = ? AND menu_id = ?', [itemId, menuId]
+      'SELECT * FROM menu_itens WHERE id = ? AND menu_id = ?', [itemId, menuId]
     );
     if (item) {
       const [siblings] = await db.query(
-        'SELECT * FROM menuitens WHERE menu_id = ? AND ' +
+        'SELECT * FROM menu_itens WHERE menu_id = ? AND ' +
         (item.parent_id ? 'parent_id = ?' : 'parent_id IS NULL') +
         ' ORDER BY ordem ASC',
         item.parent_id ? [menuId, item.parent_id] : [menuId]
@@ -191,7 +191,7 @@ const MenuController = {
       const idx = siblings.findIndex(s => s.id === itemId);
       if (idx > 0) {
         const newParent = siblings[idx - 1];
-        await db.query('UPDATE menuitens SET parent_id = ? WHERE id = ?', [newParent.id, itemId]);
+        await db.query('UPDATE menu_itens SET parent_id = ? WHERE id = ?', [newParent.id, itemId]);
       }
     }
     res.redirect('/admin/menus/' + menuId + '/edit');
@@ -216,12 +216,12 @@ const MenuController = {
     const menuId = req.params.id;
     const itemId = parseInt(req.params.itemId);
     const [[item]] = await db.query(
-      'SELECT * FROM menuitens WHERE id = ? AND menu_id = ?', [itemId, menuId]
+      'SELECT * FROM menu_itens WHERE id = ? AND menu_id = ?', [itemId, menuId]
     );
     if (item && item.parent_id) {
-      const [[parent]] = await db.query('SELECT * FROM menuitens WHERE id = ?', [item.parent_id]);
+      const [[parent]] = await db.query('SELECT * FROM menu_itens WHERE id = ?', [item.parent_id]);
       await db.query(
-        'UPDATE menuitens SET parent_id = ? WHERE id = ?',
+        'UPDATE menu_itens SET parent_id = ? WHERE id = ?',
         [parent?.parent_id ?? null, itemId]
       );
     }

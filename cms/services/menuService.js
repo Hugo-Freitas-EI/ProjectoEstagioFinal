@@ -48,7 +48,7 @@ const MenuService = {
   },
 
   async addItem(menuId, { nome, link, parent_id = null }) {
-    const [[{ max }]] = await db.query('SELECT MAX(ordem) as max FROM menuitens WHERE menu_id = ?', [menuId]);
+    const [[{ max }]] = await db.query('SELECT MAX(ordem) as max FROM menu_itens WHERE menu_id = ?', [menuId]);
     const ordem = (max ?? -1) + 1;
     return MenuItem.create({ nome, link, parent_id, menu_id: menuId, ordem });
   },
@@ -65,7 +65,7 @@ const MenuService = {
   },
 
   async deleteItem(id) {
-    await db.query('UPDATE menuitens SET parent_id = NULL WHERE parent_id = ?', [id]);
+    await db.query('UPDATE menu_itens SET parent_id = NULL WHERE parent_id = ?', [id]);
     await MenuItem.delete(id);
   },
 

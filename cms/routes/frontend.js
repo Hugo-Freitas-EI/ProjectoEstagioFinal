@@ -30,7 +30,7 @@ async function getHeaderMenu() {
     const menuId = await SiteSetting.get('menu_location_header');
     if (!menuId) return null;
     const [items] = await db.query(
-      'SELECT * FROM menuitens WHERE menu_id = ? ORDER BY ordem ASC', [menuId]
+      'SELECT * FROM menu_itens WHERE menu_id = ? ORDER BY ordem ASC', [menuId]
     );
     return buildMenuTree(items);
   } catch { return null; }
@@ -154,6 +154,54 @@ router.get('/page/:slug', async (req, res) => {
   }
 });
 
+// ── GET /category/:slug — arquivo de categoria/taxonomia ──────────────────────
+router.get('/category/:slug', async (req, res) => {
+  try {
+    const [[category]] = await db.query(
+      'SELECT * FROM categories WHERE slug = ?', [req.params.slug]
+    );
+    if (!category) {
+      return res.status(404).render('frontend/404', { pageTitle: '404', navPages: await getNavPages() });
+    }
+
+    const page   = parseInt(req.query.page) || 1;
+    const limit  = 10;
+    const offset = (page - 1) * limit;
+
+    const [posts] = await db.query(
+      `SELECT DISTINCT p.ID, p.post_title, p.post_name, p.post_excerpt, p.post_content,
+              p.post_date, p.post_type, r.username AS post_author_name
+       FROM wp_posts p
+       LEFT JOIN registers r ON p.post_author = r.id
+       JOIN post_terms pt ON pt.post_id = p.ID
+       JOIN terms t ON t.id = pt.term_id
+       WHERE t.category_id = ? AND p.post_status = 'publish'
+       ORDER BY p.post_date DESC LIMIT ? OFFSET ?`,
+      [category.id, limit, offset]
+    );
+
+    const [[{ total }]] = await db.query(
+      `SELECT COUNT(DISTINCT p.ID) total
+       FROM wp_posts p
+       JOIN post_terms pt ON pt.post_id = p.ID
+       JOIN terms t ON t.id = pt.term_id
+       WHERE t.category_id = ? AND p.post_status = 'publish'`,
+      [category.id]
+    );
+
+    const termsByPost = await getTermsForPosts(posts.map(p => p.ID));
+    const navPages    = await getNavPages();
+
+    res.render('frontend/category-archive', {
+      pageTitle: category.name, category, posts, termsByPost, navPages,
+      currentPage: page, totalPages: Math.ceil(total / limit)
+    });
+  } catch (err) {
+    console.error(err);
+    res.render('frontend/error', { pageTitle: 'Erro', message: err.message, navPages: [] });
+  }
+});
+
 // ── GET /:postType — arquivo de CPT ───────────────────────────────────────────
 router.get('/:postType', async (req, res, next) => {
   try {
@@ -220,11 +268,11 @@ router.get('/:postType/:slug', async (req, res, next) => {
     const terms    = (await getTermsForPosts([post.ID]))[post.ID] || [];
     const meta     = await PostMeta.findByPost(post.ID);
 
-    const [[prev]] = await db.query(
+    const [[prevPost]] = await db.query(
       "SELECT ID, post_title, post_name FROM wp_posts WHERE post_type=? AND post_status='publish' AND post_date < ? ORDER BY post_date DESC LIMIT 1",
       [pt.name, post.post_date]
     );
-    const [[next]] = await db.query(
+    const [[nextPost]] = await db.query(
       "SELECT ID, post_title, post_name FROM wp_posts WHERE post_type=? AND post_status='publish' AND post_date > ? ORDER BY post_date ASC LIMIT 1",
       [pt.name, post.post_date]
     );
@@ -234,7 +282,7 @@ router.get('/:postType/:slug', async (req, res, next) => {
       metaDesc: post.post_excerpt,
       postType: pt,
       post, bodyHtml, navPages, terms, meta,
-      prev: prev || null, next: next || null
+      prev: prevPost || null, next: nextPost || null
     });
   } catch (err) {
     res.render('frontend/error', { pageTitle: 'Erro', message: err.message, navPages: [] });

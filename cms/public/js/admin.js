@@ -114,10 +114,78 @@ function initSidebarToggle() {
   });
 }
 
+// ── AVISO ALTERAÇÕES NÃO GUARDADAS ──
+function initUnsavedChanges() {
+  var isDirty = false;
+  var pendingUrl = null;
+
+  var modal   = document.getElementById('unsaved-modal');
+  var btnLeave = document.getElementById('unsaved-leave');
+  var btnStay  = document.getElementById('unsaved-stay');
+
+  if (!modal) return;
+
+  function showModal() { modal.classList.add('active'); }
+  function hideModal() { modal.classList.remove('active'); }
+
+  // Marca sujo quando qualquer campo de formulário muda
+  document.querySelectorAll('form').forEach(function(form) {
+    form.addEventListener('input',  function() { isDirty = true; });
+    form.addEventListener('change', function() { isDirty = true; });
+    // Limpa ao submeter (guardar/publicar)
+    form.addEventListener('submit', function() { isDirty = false; });
+  });
+
+  // Aviso do browser para refresh/fechar aba/back
+  window.addEventListener('beforeunload', function(e) {
+    if (!isDirty) return;
+    e.preventDefault();
+    e.returnValue = '';
+  });
+
+  // Interceta cliques em links de navegação interna
+  document.addEventListener('click', function(e) {
+    if (!isDirty) return;
+    var link = e.target.closest('a[href]');
+    if (!link) return;
+    var href = link.getAttribute('href');
+    if (!href || href === '#' || href.startsWith('javascript:')) return;
+    if (link.target === '_blank') return;
+
+    e.preventDefault();
+    pendingUrl = href;
+    showModal();
+  });
+
+  if (btnLeave) {
+    btnLeave.addEventListener('click', function() {
+      isDirty = false;
+      hideModal();
+      if (pendingUrl) window.location.href = pendingUrl;
+    });
+  }
+
+  if (btnStay) {
+    btnStay.addEventListener('click', function() {
+      hideModal();
+      pendingUrl = null;
+    });
+  }
+
+  // Fechar modal ao clicar fora do diálogo
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) {
+      hideModal();
+      pendingUrl = null;
+    }
+  });
+}
+
 // ── INICIALIZAÇÃO ──
 document.addEventListener('DOMContentLoaded', function() {
   initTheme();
   initSidebarToggle();
+  initUnsavedChanges();
   // Slug manual
   var slugEl = document.getElementById('e-slug');
   if (slugEl) {

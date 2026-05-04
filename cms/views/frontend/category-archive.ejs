@@ -1,0 +1,87 @@
+<%- include('../partials/frontend-head', { pageTitle: category.name }) %>
+<%- include('../partials/frontend-header', { currentPath: '/category/' + category.slug }) %>
+
+<div class="container" style="max-width:860px;padding:48px 24px">
+
+  <div class="cpt-archive-header">
+    <h1><%= category.name %></h1>
+    <% if (category.description) { %>
+      <p class="cpt-archive-desc"><%= category.description %></p>
+    <% } %>
+  </div>
+
+  <% if (posts.length === 0) { %>
+    <div class="empty-state">
+      <div class="icon">🗂️</div>
+      <h2>Sem conteúdo nesta categoria</h2>
+      <p>Ainda não existem publicações associadas a esta categoria.</p>
+    </div>
+  <% } else { %>
+
+    <div class="posts-list">
+      <% posts.forEach(function(post) { %>
+        <% const terms = termsByPost[post.ID] || []; %>
+
+        <article class="post-card">
+
+          <% if (terms.length) { %>
+            <div class="post-terms">
+              <% terms.forEach(function(t) { %>
+                <span class="post-term-badge"><%= t.name %></span>
+              <% }) %>
+            </div>
+          <% } %>
+
+          <h2>
+            <% var postUrl = post.post_type === 'post' ? '/post/' + post.post_name : '/' + post.post_type + '/' + post.post_name; %>
+            <a href="<%= postUrl %>"><%= post.post_title %></a>
+          </h2>
+
+          <div class="post-meta">
+            <% if (post.post_author_name) { %>
+              <span><i class="bi bi-person"></i> <%= post.post_author_name %></span>
+            <% } %>
+            <span>
+              <i class="bi bi-calendar3"></i>
+              <%= new Date(post.post_date).toLocaleDateString('pt-PT', { day:'numeric', month:'long', year:'numeric' }) %>
+            </span>
+          </div>
+
+          <% if (post.post_excerpt || post.post_content) { %>
+            <p class="post-excerpt">
+              <% if (post.post_excerpt) { %>
+                <%= post.post_excerpt %>
+              <% } else { %>
+                <%= post.post_content.replace(/<[^>]+>/g, '').replace(/[#*`>\[\]]/g, '').replace(/\s+/g, ' ').trim().substring(0, 200) %>…
+              <% } %>
+            </p>
+          <% } %>
+
+          <a class="read-more" href="<%= postUrl %>">Ver mais →</a>
+
+        </article>
+      <% }) %>
+    </div>
+
+    <% if (totalPages > 1) { %>
+      <nav aria-label="Paginação">
+        <ul class="pagination justify-content-center">
+          <li class="page-item <%= currentPage === 1 ? 'disabled' : '' %>">
+            <a class="page-link" href="/category/<%= category.slug %>?page=<%= currentPage - 1 %>">←</a>
+          </li>
+          <% for (var i = 1; i <= totalPages; i++) { %>
+            <li class="page-item <%= i === currentPage ? 'active' : '' %>">
+              <a class="page-link" href="/category/<%= category.slug %>?page=<%= i %>"><%= i %></a>
+            </li>
+          <% } %>
+          <li class="page-item <%= currentPage === totalPages ? 'disabled' : '' %>">
+            <a class="page-link" href="/category/<%= category.slug %>?page=<%= currentPage + 1 %>">→</a>
+          </li>
+        </ul>
+      </nav>
+    <% } %>
+
+  <% } %>
+</div>
+
+<%- include('../partials/frontend-footer') %>

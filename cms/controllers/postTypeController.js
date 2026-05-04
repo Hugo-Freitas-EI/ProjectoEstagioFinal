@@ -12,14 +12,16 @@ const PostTypeController = {
 
   async list(req, res) {
     const custom = await PostType.findAll();
-    // adicionar contagem de posts a cada tipo
     for (const pt of custom) {
       pt.postCount = await PostType.countPosts(pt.name);
       pt.taxonomies = await PostType.getTaxonomies(pt.name);
     }
+    const systemTypes = await Promise.all(
+      PostType.SYSTEM.map(async s => ({ ...s, taxonomies: await PostType.getTaxonomies(s.name) }))
+    );
     res.render('admin/post-types/index', {
       pageTitle: 'Tipos de Conteúdo', currentPage: 'post-types',
-      postTypes: custom
+      postTypes: custom, systemTypes
     });
   },
 
@@ -27,7 +29,7 @@ const PostTypeController = {
     const categories = await Category.findAll();
     res.render('admin/post-types/form', {
       pageTitle: 'Novo Tipo de Conteúdo', currentPage: 'post-types',
-      postType: null, isEdit: false, error: null, categories,
+      postType: null, isEdit: false, isSystem: false, error: null, categories,
       selectedCategoryIds: []
     });
   },
@@ -38,7 +40,7 @@ const PostTypeController = {
       const categories = await Category.findAll();
       return res.render('admin/post-types/form', {
         pageTitle: 'Novo Tipo de Conteúdo', currentPage: 'post-types',
-        postType: req.body, isEdit: false, error: 'O label é obrigatório.',
+        postType: req.body, isEdit: false, isSystem: false, error: 'O label é obrigatório.',
         categories, selectedCategoryIds: [].concat(category_ids || [])
       });
     }
@@ -52,7 +54,7 @@ const PostTypeController = {
       const categories = await Category.findAll();
       res.render('admin/post-types/form', {
         pageTitle: 'Novo Tipo de Conteúdo', currentPage: 'post-types',
-        postType: req.body, isEdit: false, error: err.message,
+        postType: req.body, isEdit: false, isSystem: false, error: err.message,
         categories, selectedCategoryIds: [].concat(category_ids || [])
       });
     }
@@ -60,12 +62,12 @@ const PostTypeController = {
 
   async editForm(req, res) {
     const pt = await PostType.findByName(req.params.name);
-    if (!pt || pt.system) return res.redirect('/admin/post-types');
+    if (!pt) return res.redirect('/admin/post-types');
     const categories = await Category.findAll();
     const selectedCategoryIds = (await PostType.getTaxonomies(pt.name)).map(c => c.id);
     res.render('admin/post-types/form', {
       pageTitle: 'Editar Tipo de Conteúdo', currentPage: 'post-types',
-      postType: pt, isEdit: true, error: null, categories, selectedCategoryIds
+      postType: pt, isEdit: true, isSystem: !!pt.system, error: null, categories, selectedCategoryIds
     });
   },
 
@@ -73,11 +75,13 @@ const PostTypeController = {
     const { label, description, category_ids } = req.body;
     const ptName = req.params.name;
     const pt = await PostType.findByName(ptName);
-    if (!pt || pt.system) return res.redirect('/admin/post-types');
+    if (!pt) return res.redirect('/admin/post-types');
     try {
-      await PostType.update(pt.id, { label, description, updatedBy: req.user?.id });
+      if (!pt.system) {
+        await PostType.update(pt.id, { label, description, updatedBy: req.user?.id });
+      }
       await PostType.syncTaxonomies(ptName, [].concat(category_ids || []).filter(Boolean));
-      res.flash('success', 'Tipo de conteúdo atualizado.');
+      res.flash('success', pt.system ? 'Taxonomias atualizadas.' : 'Tipo de conteúdo atualizado.');
       res.redirect('/admin/post-types');
     } catch (err) {
       res.flash('error', err.message);

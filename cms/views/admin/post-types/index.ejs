@@ -7,7 +7,7 @@
   </a>
 </div>
 
-<!-- Tipos de sistema (não editáveis) -->
+<!-- Tipos de sistema (taxonomias editáveis) -->
 <div class="card mb-3">
   <div class="card-header d-flex align-items-center gap-2">
     <i class="bi bi-lock" style="color:var(--text2);font-size:12px"></i>
@@ -15,18 +15,28 @@
   </div>
   <div class="table-responsive">
     <table class="table table-hover mb-0">
-      <thead><tr><th>Name</th><th>Label</th><th>Notas</th></tr></thead>
+      <thead><tr><th>Name</th><th>Label</th><th>Taxonomias</th><th class="text-end">Ações</th></tr></thead>
       <tbody>
-        <tr>
-          <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent2)">post</td>
-          <td>Posts</td>
-          <td class="text-muted small">Artigos e notícias</td>
-        </tr>
-        <tr>
-          <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent2)">page</td>
-          <td>Páginas</td>
-          <td class="text-muted small">Páginas estáticas</td>
-        </tr>
+        <% (typeof systemTypes !== 'undefined' ? systemTypes : []).forEach(function(st) { %>
+          <tr>
+            <td style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent2)"><%= st.name %></td>
+            <td><%= st.label %></td>
+            <td>
+              <% if (st.taxonomies && st.taxonomies.length) { %>
+                <% st.taxonomies.forEach(function(t) { %>
+                  <span class="badge bg-primary me-1"><%= t.name %></span>
+                <% }) %>
+              <% } else { %>
+                <span class="text-muted small">nenhuma</span>
+              <% } %>
+            </td>
+            <td class="text-end">
+              <a href="/admin/post-types/<%= st.name %>/edit" class="btn btn-sm btn-outline-secondary" title="Editar taxonomias">
+                <i class="bi bi-pencil"></i>
+              </a>
+            </td>
+          </tr>
+        <% }) %>
       </tbody>
     </table>
   </div>
