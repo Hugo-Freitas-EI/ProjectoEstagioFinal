@@ -69,6 +69,7 @@
                     <i class="bi bi-list-nested"></i><span>Menus</span>
                   </a>
 
+                  <% if (user && user.role === 'admin') { %>
                   <div class="nav-section">Estrutura</div>
                   <a href="/admin/post-types" title="Tipos de Conteúdo"
                     class="nav-item <%= currentPage === 'post-types' ? 'active' : '' %>">
@@ -88,25 +89,22 @@
                     class="nav-item <%= currentPage === 'settings' ? 'active' : '' %>">
                     <i class="bi bi-gear"></i><span>Definições</span>
                   </a>
+                  <% } %>
 
       </nav>
 
       <div class="sidebar-footer">
         <% if (user) { %>
-          <div class="d-flex align-items-center gap-2">
+          <a href="/admin/profile" class="d-flex align-items-center gap-2 sidebar-profile-link">
             <div class="user-avatar">
               <%= user.username[0].toUpperCase() %>
             </div>
             <div>
-              <div class="username">
-                <%= user.username %>
-              </div>
-              <div class="role">
-                <%= user.role %>
-              </div>
+              <div class="username"><%= user.username %></div>
+              <div class="role"><%= user.role === 'admin' ? 'Admin' : user.role === 'editor' ? 'Editor' : 'Subscritor' %></div>
             </div>
-          </div>
-          <% } %>
+          </a>
+        <% } %>
       </div>
     </aside>
 

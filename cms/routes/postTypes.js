@@ -1,9 +1,9 @@
 const express             = require('express');
 const router              = express.Router();
-const { requireAuth }     = require('../middleware/auth');
+const { requireAdmin }    = require('../middleware/auth');
 const PostTypeController  = require('../controllers/postTypeController');
 
-router.use(requireAuth);
+router.use(requireAdmin);
 
 router.get('/',                   PostTypeController.list);
 router.get('/new',                PostTypeController.newForm);

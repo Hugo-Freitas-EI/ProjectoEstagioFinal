@@ -34,8 +34,12 @@
             </td>
             <td class="text-muted"><%= u.email %></td>
             <td>
-              <span class="badge <%= u.role === 'admin' ? 'bg-danger' : u.role === 'editor' ? 'bg-primary' : 'bg-secondary' %>">
-                <%= u.role || 'user' %>
+              <span class="badge <%=
+                u.role === 'admin'  ? 'bg-danger'  :
+                u.role === 'editor' ? 'bg-primary'  : 'bg-secondary' %>">
+                <%=
+                  u.role === 'admin'  ? 'Admin'     :
+                  u.role === 'editor' ? 'Editor'    : 'Subscritor' %>
               </span>
             </td>
             <td class="text-muted" style="font-size:13px">

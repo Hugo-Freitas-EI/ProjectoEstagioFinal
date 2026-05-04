@@ -1,0 +1,70 @@
+<%- include('../partials/admin-layout', { pageTitle: 'O Meu Perfil', currentPage: '' }) %>
+
+<div class="row"><div class="col-lg-6">
+  <% if (error) { %><div class="alert alert-danger mb-3"><%= error %></div><% } %>
+
+  <div class="card mb-3">
+    <div class="card-header d-flex align-items-center gap-2">
+      <div class="user-avatar" style="width:28px;height:28px;font-size:11px"><%= user.username[0].toUpperCase() %></div>
+      O Meu Perfil
+    </div>
+    <div class="card-body">
+      <form method="POST" action="/admin/profile">
+
+        <div class="mb-3">
+          <label class="form-label">Nome de utilizador *</label>
+          <input type="text" name="username" class="form-control"
+            value="<%= user.username %>" required autofocus>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Email *</label>
+          <input type="text" name="email" class="form-control"
+            value="<%= user.email %>" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Função</label>
+          <input type="text" class="form-control" value="<%=
+            user.role === 'admin'  ? 'Admin'     :
+            user.role === 'editor' ? 'Editor'    : 'Subscritor' %>" disabled>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label">Nova password <span class="text-muted">(deixar em branco para não alterar)</span></label>
+          <div class="input-group">
+            <input type="password" name="password" id="passwordField" class="form-control"
+              minlength="6" autocomplete="new-password">
+            <button type="button" class="btn btn-outline-secondary" id="togglePassword" tabindex="-1">
+              <i class="bi bi-eye" id="toggleIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i> Guardar alterações
+          </button>
+          <a href="/admin" class="btn btn-outline-secondary">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div></div>
+
+<script>
+document.getElementById('togglePassword').addEventListener('click', function() {
+  var field = document.getElementById('passwordField');
+  var icon  = document.getElementById('toggleIcon');
+  if (field.type === 'password') {
+    field.type = 'text';
+    icon.className = 'bi bi-eye-slash';
+  } else {
+    field.type = 'password';
+    icon.className = 'bi bi-eye';
+  }
+});
+</script>
+
+<%- include('../partials/admin-layout-end') %>

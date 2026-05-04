@@ -59,7 +59,7 @@ router.post('/register', async (req, res) => {
     const hashed = await bcrypt.hash(password, 12);
     const now = new Date();
     const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM registers');
-    const role = total === 0 ? 'admin' : 'user';
+    const role = total === 0 ? 'admin' : 'subscriber';
     await db.query(
       'INSERT INTO registers (username, email, password, role, createdAt, updatedAt) VALUES (?,?,?,?,?,?)',
       [username, email, hashed, role, now, now]

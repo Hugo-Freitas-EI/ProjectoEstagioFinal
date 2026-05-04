@@ -1,0 +1,77 @@
+<%- include('../partials/admin-layout', { pageTitle: pageTitle, currentPage: 'users' }) %>
+
+<div class="row"><div class="col-lg-6">
+  <% if (error) { %><div class="alert alert-danger mb-3"><%= error %></div><% } %>
+
+  <div class="card mb-3">
+    <div class="card-header"><%= isEdit ? 'Editar Utilizador' : 'Novo Utilizador' %></div>
+    <div class="card-body">
+      <form method="POST" action="/admin/users<%= isEdit ? '/' + editUser.id : '' %>">
+
+        <div class="mb-3">
+          <label class="form-label">Nome de utilizador *</label>
+          <input type="text" name="username" class="form-control"
+            value="<%= editUser ? editUser.username : '' %>" required autofocus>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Email *</label>
+          <input type="text" name="email" class="form-control"
+            value="<%= editUser ? editUser.email : '' %>" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Função</label>
+          <select name="role" class="form-select">
+            <option value="subscriber" <%= (!editUser || editUser.role === 'subscriber') ? 'selected' : '' %>>
+              Subscritor — só frontend
+            </option>
+            <option value="editor" <%= (editUser && editUser.role === 'editor') ? 'selected' : '' %>>
+              Editor — conteúdo, taxonomias e aparência
+            </option>
+            <option value="admin" <%= (editUser && editUser.role === 'admin') ? 'selected' : '' %>>
+              Admin — acesso total
+            </option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label">
+            Password<% if (isEdit) { %> <span class="text-muted">(deixar em branco para não alterar)</span><% } else { %> *<% } %>
+          </label>
+          <div class="input-group">
+            <input type="password" name="password" id="passwordField" class="form-control"
+              <%= isEdit ? '' : 'required' %> minlength="6" autocomplete="new-password">
+            <button type="button" class="btn btn-outline-secondary" id="togglePassword" tabindex="-1">
+              <i class="bi bi-eye" id="toggleIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-lg me-1"></i> <%= isEdit ? 'Guardar' : 'Criar' %>
+          </button>
+          <a href="/admin/users" class="btn btn-outline-secondary">Cancelar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div></div>
+
+<script>
+document.getElementById('togglePassword').addEventListener('click', function() {
+  var field = document.getElementById('passwordField');
+  var icon  = document.getElementById('toggleIcon');
+  if (field.type === 'password') {
+    field.type = 'text';
+    icon.className = 'bi bi-eye-slash';
+  } else {
+    field.type = 'password';
+    icon.className = 'bi bi-eye';
+  }
+});
+</script>
+
+<%- include('../partials/admin-layout-end') %>
