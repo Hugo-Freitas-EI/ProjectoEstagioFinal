@@ -43,10 +43,11 @@ const PostController = {
     const postType = req.basePostType || 'post';
     const label    = await getPostTypeLabel(postType);
     const { status = 'all', search = '', page = 1 } = req.query;
+    const authorId = req.user.ownContentOnly ? req.user.id : null;
 
     const result = await PostService.list(postType, {
       status: status === 'all' ? null : status,
-      search, page: Number(page), limit: 20
+      search, page: Number(page), limit: 20, authorId
     });
 
     res.render('admin/posts-list', {
@@ -113,6 +114,10 @@ const PostController = {
     const label    = await getPostTypeLabel(postType);
     const post     = await PostService.getWithFullData(req.params.id);
     if (!post) return res.redirect(`/admin/cpt/${postType}`);
+    if (req.user.ownContentOnly && post.post_author !== req.user.id) {
+      res.flash('error', 'Não tens permissão para editar este conteúdo.');
+      return res.redirect(`/admin/cpt/${postType}`);
+    }
 
     const allTerms       = await getRelevantTerms(postType);
     const selectedTermIds = post.terms.map(t => t.id);
@@ -154,6 +159,15 @@ const PostController = {
   async update(req, res) {
     const postType = req.basePostType || 'post';
     const { id }   = req.params;
+
+    if (req.user.ownContentOnly) {
+      const existing = await Post.findById(id);
+      if (!existing || existing.post_author !== req.user.id) {
+        res.flash('error', 'Não tens permissão para editar este conteúdo.');
+        return res.redirect(`/admin/cpt/${postType}`);
+      }
+    }
+
     const { post_title, post_content, post_excerpt, post_name, post_date, action } = req.body;
     const status   = action === 'publish' ? 'publish' : 'draft';
     const termIds  = [].concat(req.body.term_ids || []);
@@ -178,6 +192,15 @@ const PostController = {
 
   async destroy(req, res) {
     const postType = req.basePostType || 'post';
+
+    if (req.user.ownContentOnly) {
+      const existing = await Post.findById(req.params.id);
+      if (!existing || existing.post_author !== req.user.id) {
+        res.flash('error', 'Não tens permissão para apagar este conteúdo.');
+        return res.redirect(`/admin/cpt/${postType}`);
+      }
+    }
+
     await PostService.delete(req.params.id);
     res.flash('success', 'Apagado com sucesso.');
     res.redirect(`/admin/cpt/${postType}`);

@@ -4,12 +4,13 @@ const Post = {
 
   // ─── FIND ─────────────────────────────────────────────────────────────────
 
-  async findAll({ postType = 'post', status = null, search = '', page = 1, limit = 20 } = {}) {
+  async findAll({ postType = 'post', status = null, search = '', page = 1, limit = 20, authorId = null } = {}) {
     const offset = (page - 1) * limit;
     const params = [postType];
     let where = "p.post_type = ? AND p.post_status != 'auto-draft'";
-    if (status) { where += ' AND p.post_status = ?'; params.push(status); }
-    if (search) { where += ' AND p.post_title LIKE ?'; params.push(`%${search}%`); }
+    if (status)   { where += ' AND p.post_status = ?';   params.push(status); }
+    if (search)   { where += ' AND p.post_title LIKE ?'; params.push(`%${search}%`); }
+    if (authorId) { where += ' AND p.post_author = ?';   params.push(authorId); }
 
     const [rows] = await db.query(
       `SELECT p.ID, p.post_title, p.post_name, p.post_status, p.post_date, p.post_author, r.username
@@ -52,10 +53,12 @@ const Post = {
     return row || null;
   },
 
-  async countByStatus(postType) {
-    const [[all]]     = await db.query("SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status!='auto-draft'", [postType]);
-    const [[publish]] = await db.query("SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='publish'", [postType]);
-    const [[draft]]   = await db.query("SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='draft'", [postType]);
+  async countByStatus(postType, authorId = null) {
+    const extra = authorId ? ' AND post_author = ?' : '';
+    const p     = authorId ? [postType, authorId] : [postType];
+    const [[all]]     = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status!='auto-draft'${extra}`, p);
+    const [[publish]] = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='publish'${extra}`, p);
+    const [[draft]]   = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='draft'${extra}`, p);
     return { all: all.c, publish: publish.c, draft: draft.c };
   },
 

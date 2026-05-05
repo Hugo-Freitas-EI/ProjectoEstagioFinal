@@ -14,9 +14,9 @@ function makeSlug(str) {
 const PostService = {
 
   // Lista paginada
-  async list(postType, { status, search, page, limit } = {}) {
-    const { rows, total } = await Post.findAll({ postType, status, search, page, limit });
-    const counts = await Post.countByStatus(postType);
+  async list(postType, { status, search, page, limit, authorId } = {}) {
+    const { rows, total } = await Post.findAll({ postType, status, search, page, limit, authorId });
+    const counts = await Post.countByStatus(postType, authorId);
     return { posts: rows, total, counts, page: page || 1, limit: limit || 20 };
   },
 

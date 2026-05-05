@@ -6,6 +6,7 @@ const path         = require('path');
 const flash        = require('./middleware/flash');
 const sidebarData  = require('./middleware/sidebarData');
 const SiteSetting  = require('./models/SiteSetting');
+const Role         = require('./models/Role');
 
 const app = express();
 
@@ -88,7 +89,9 @@ app.use(function(err, req, res, next) {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, function() {
-  console.log('NodeCMS a correr em http://localhost:' + PORT);
-  console.log('Admin:  http://localhost:' + PORT + '/admin');
-});
+Role.migrate()
+  .then(() => app.listen(PORT, function() {
+    console.log('NodeCMS a correr em http://localhost:' + PORT);
+    console.log('Admin:  http://localhost:' + PORT + '/admin');
+  }))
+  .catch(err => { console.error('Erro na migração de roles:', err); process.exit(1); });

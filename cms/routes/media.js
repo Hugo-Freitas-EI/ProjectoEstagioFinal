@@ -4,7 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const db = require('../db');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requirePermission } = require('../middleware/auth');
 
 router.use(requireAuth);
 
@@ -41,7 +41,7 @@ const upload = multer({
 // =============================
 // GET - LISTAR MEDIA
 // =============================
-router.get('/', async (req, res) => {
+router.get('/', requirePermission('media.read'), async (req, res) => {
   try {
     const folderId = req.query.folder || null;
 
@@ -69,7 +69,7 @@ router.get('/', async (req, res) => {
 // =============================
 // GET - API LIST (para offcanvas do editor)
 // =============================
-router.get('/api/list', async (req, res) => {
+router.get('/api/list', requirePermission('media.read'), async (req, res) => {
   try {
     const folderId = req.query.folder || null;
 
@@ -92,7 +92,7 @@ router.get('/api/list', async (req, res) => {
 // =============================
 // POST - UPLOAD
 // =============================
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post('/upload', requirePermission('media.write'), upload.single('file'), async (req, res) => {
   if (!req.file) return res.redirect('/admin/media');
 
   try {
@@ -132,7 +132,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 // POST - UPLOAD (API / JSON)
 // Usado por pedidos fetch() que precisam de uma resposta JSON { url }
 // =============================
-router.post('/upload-api', upload.single('file'), async (req, res) => {
+router.post('/upload-api', requirePermission('media.write'), upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Nenhum ficheiro recebido.' });
 
   const ficheiroUrl = `/uploads/${req.file.filename}`;
@@ -156,7 +156,7 @@ router.post('/upload-api', upload.single('file'), async (req, res) => {
 // =============================
 // POST - DELETE (CORRIGIDO)
 // =============================
-router.post('/:id/delete', async (req, res) => {
+router.post('/:id/delete', requirePermission('media.write'), async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM media WHERE id = ?', [req.params.id]);
 
@@ -188,7 +188,7 @@ router.post('/:id/delete', async (req, res) => {
 // =============================
 // POST - UPDATE (NOVO)
 // =============================
-router.post('/:id/update', async (req, res) => {
+router.post('/:id/update', requirePermission('media.write'), async (req, res) => {
   try {
     const { titulo, altText, caption, description } = req.body;
 
@@ -204,7 +204,7 @@ router.post('/:id/update', async (req, res) => {
   }
 });
 
-router.post('/folder', async (req, res) => {
+router.post('/folder', requirePermission('media.write'), async (req, res) => {
   try {
     const { nome, parent_id } = req.body;
 

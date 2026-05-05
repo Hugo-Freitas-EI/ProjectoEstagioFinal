@@ -1,0 +1,85 @@
+<%- include('../../partials/admin-layout', { pageTitle: 'Funções', currentPage: 'roles' }) %>
+
+<div class="d-flex justify-content-end mb-3">
+  <a href="/admin/roles/new" class="btn btn-sm btn-primary">
+    <i class="bi bi-plus-circle me-1"></i> Nova Função
+  </a>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0 align-middle">
+      <thead>
+        <tr>
+          <th>Função</th>
+          <th>Nome interno</th>
+          <th>Permissões</th>
+          <th class="text-end">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% roles.forEach(function(role) { %>
+          <tr>
+            <td>
+              <span class="fw-semibold"><%= role.label %></span>
+              <% if (role.is_system) { %>
+                <span class="badge bg-secondary ms-1" style="font-size:10px">Sistema</span>
+              <% } %>
+            </td>
+            <td class="text-muted" style="font-size:13px;font-family:monospace"><%= role.name %></td>
+            <td>
+              <% if (role.name === 'admin') { %>
+                <span class="badge bg-danger">Todas</span>
+              <% } else if (!role.permissions || role.permissions.length === 0) { %>
+                <span class="text-muted" style="font-size:13px">Nenhuma</span>
+              <% } else { %>
+                <%
+                  // Agrupar permissões por item para mostrar de forma compacta
+                  var summary = {};
+                  role.permissions.forEach(function(pk) {
+                    var parts = pk.split('.');
+                    var itemKey = parts[0];
+                    var level   = parts[1];
+                    if (!summary[itemKey] || level === 'write') summary[itemKey] = level;
+                  });
+                  // Encontrar label do item
+                  function itemLabel(key) {
+                    for (var g of permissionGroups) {
+                      for (var i of g.items) { if (i.key === key) return i.label; }
+                    }
+                    return key;
+                  }
+                %>
+                <div class="d-flex flex-wrap gap-1">
+                  <% Object.entries(summary).forEach(function([key, level]) { %>
+                    <span class="badge" style="font-size:10px;background:var(--accent);color:#fff">
+                      <%= itemLabel(key) %>
+                      <span style="opacity:.75"><%= level === 'write' ? '(R/W)' : '(R)' %></span>
+                    </span>
+                  <% }) %>
+                </div>
+              <% } %>
+            </td>
+            <td class="text-end">
+              <div class="d-flex gap-1 justify-content-end">
+                <a href="/admin/roles/<%= role.name %>/edit" class="btn btn-sm btn-outline-secondary" title="Editar">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <% if (!role.is_system) { %>
+                  <form method="POST" action="/admin/roles/<%= role.name %>/delete"
+                    onsubmit="return confirm('Apagar função <%= role.label %>?')" style="display:inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Apagar">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                <% } %>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../../partials/admin-layout-end') %>

@@ -9,7 +9,7 @@
     <div class="card mb-3">
       <div class="card-header">Grupo de Campos</div>
       <div class="card-body">
-        <form method="POST" action="/admin/field-groups<%= isEdit ? '/' + group.id : '' %>">
+        <form method="POST" action="/admin/field-groups<%= isEdit ? '/' + group.id : '' %>" data-unsaved>
           <div class="mb-3">
             <label class="form-label">Nome do Grupo *</label>
             <input type="text" name="name" class="form-control"

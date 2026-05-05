@@ -128,8 +128,8 @@ function initUnsavedChanges() {
   function showModal() { modal.classList.add('active'); }
   function hideModal() { modal.classList.remove('active'); }
 
-  // Marca sujo quando qualquer campo de formulário muda
-  document.querySelectorAll('form').forEach(function(form) {
+  // Marca sujo quando qualquer campo de formulário com data-unsaved muda
+  document.querySelectorAll('form[data-unsaved]').forEach(function(form) {
     form.addEventListener('input',  function() { isDirty = true; });
     form.addEventListener('change', function() { isDirty = true; });
     // Limpa ao submeter (guardar/publicar)

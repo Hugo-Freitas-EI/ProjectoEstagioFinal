@@ -2,17 +2,31 @@
 // Montada em /admin/cpt/:postType
 const express        = require('express');
 const router         = express.Router({ mergeParams: true });
-const { requireAuth }= require('../middleware/auth');
+const { requireAuth, requirePermission } = require('../middleware/auth');
 const PostController = require('../controllers/postController');
 const PostType       = require('../models/PostType');
 
-// Verifica que o post type existe e injeta em req.basePostType
+const DENY = (res) => res.status(403).render('frontend/error', {
+  pageTitle: 'Sem permissão', message: 'Não tens permissão para aceder a esta secção.', navPages: []
+});
+
+// Verifica que o post type existe, injeta em req.basePostType e verifica permissão granular
 router.use(requireAuth, async (req, res, next) => {
   const name = req.params.postType;
   const pt   = await PostType.findByName(name);
   if (!pt) return res.status(404).render('frontend/404', { pageTitle: '404', navPages: [] });
   req.basePostType = name;
-  next();
+
+  if (req.user.role === 'admin') return next();
+
+  const permBase = name === 'post' ? 'posts' : name === 'page' ? 'pages' : `cpt.${name}`;
+  const level    = req.method === 'GET' ? 'read' : 'write';
+  const needed   = `${permBase}.${level}`;
+  const perms    = req.user.permissions || [];
+
+  if (perms.includes(needed)) return next();
+  if (level === 'read' && perms.includes(`${permBase}.write`)) return next();
+  return DENY(res);
 });
 
 router.get('/',              PostController.list);

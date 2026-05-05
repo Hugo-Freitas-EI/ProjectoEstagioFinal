@@ -6,7 +6,7 @@
   <div class="card">
     <div class="card-header">Novo Menu</div>
     <div class="card-body">
-      <form method="POST" action="/admin/menus">
+      <form method="POST" action="/admin/menus" data-unsaved>
         <div class="mb-3">
           <label class="form-label">Nome do menu *</label>
           <input type="text" name="nome" class="form-control" value="<%= menu ? menu.nome : '' %>" required autofocus>

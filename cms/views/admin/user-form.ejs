@@ -6,7 +6,7 @@
   <div class="card mb-3">
     <div class="card-header"><%= isEdit ? 'Editar Utilizador' : 'Novo Utilizador' %></div>
     <div class="card-body">
-      <form method="POST" action="/admin/users<%= isEdit ? '/' + editUser.id : '' %>">
+      <form method="POST" action="/admin/users<%= isEdit ? '/' + editUser.id : '' %>" data-unsaved>
 
         <div class="mb-3">
           <label class="form-label">Nome de utilizador *</label>

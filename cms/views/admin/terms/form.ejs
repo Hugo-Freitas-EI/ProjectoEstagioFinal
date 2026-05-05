@@ -6,7 +6,7 @@
   <div class="card">
     <div class="card-header"><%= isEdit ? 'Editar Termo' : 'Novo Termo' %></div>
     <div class="card-body">
-      <form method="POST" action="/admin/terms<%= isEdit ? '/' + term.id : '' %>">
+      <form method="POST" action="/admin/terms<%= isEdit ? '/' + term.id : '' %>" data-unsaved>
         <div class="mb-3">
           <label class="form-label">Categoria *</label>
           <select name="category_id" class="form-select" required>

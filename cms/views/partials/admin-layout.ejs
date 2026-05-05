@@ -19,7 +19,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-logo">
         <h1 class="sidebar-title">NodeCMS</h1>
-        <span class="sidebar-subtitle">Painel Admin</span>
+        <span class="sidebar-subtitle"><%= user && user.role === 'admin' ? 'Painel Admin' : 'Painel ' + (user && user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '') %></span>
         <button class="sidebar-toggle" id="sidebarToggle" title="Minimizar sidebar">
           <i class="bi bi-layout-sidebar-reverse" id="sidebarToggleIcon"></i>
         </button>
@@ -32,64 +32,96 @@
           <i class="bi bi-grid"></i><span>Dashboard</span>
         </a>
 
+        <% var p = (user && user.permissions) ? user.permissions : []; %>
+        <% var has = function(k) { return p.includes(k+'.read') || p.includes(k+'.write'); }; %>
+
+        <%
+          var hasCpt = user && user.role === 'admin'
+            ? (typeof customPostTypes !== 'undefined' && customPostTypes.length > 0)
+            : (typeof customPostTypes !== 'undefined' && customPostTypes.some(function(c){ return has('cpt.'+c.name); }));
+        %>
+        <% if (has('posts') || has('pages') || has('media') || hasCpt) { %>
         <div class="nav-section">Conteúdo</div>
+        <% if (has('posts')) { %>
         <a href="/admin/cpt/post" title="Posts" class="nav-item <%= currentPage === 'post' ? 'active' : '' %>">
           <i class="bi bi-pencil-square"></i><span>Posts</span>
         </a>
+        <% } %>
+        <% if (has('pages')) { %>
         <a href="/admin/cpt/page" title="Páginas" class="nav-item <%= currentPage === 'page' ? 'active' : '' %>">
           <i class="bi bi-file-text"></i><span>Páginas</span>
         </a>
+        <% } %>
+        <% if (has('media')) { %>
         <a href="/admin/media" title="Media" class="nav-item <%= currentPage === 'media' ? 'active' : '' %>">
           <i class="bi bi-images"></i><span>Media</span>
         </a>
-
-        <%# CPTs dinâmicos da BD %>
-          <% if (typeof customPostTypes !=='undefined' && customPostTypes.length) { %>
-            <% customPostTypes.forEach(function(cpt) { %>
+        <% } %>
+        <% if (typeof customPostTypes !== 'undefined' && customPostTypes.length) { %>
+          <% customPostTypes.forEach(function(cpt) { %>
+            <% if (user && user.role === 'admin' || has('cpt.' + cpt.name)) { %>
               <a href="/admin/cpt/<%= cpt.name %>" title="<%= cpt.label %>"
                 class="nav-item <%= currentPage === cpt.name ? 'active' : '' %>">
-                <i class="bi bi-collection"></i><span>
-                  <%= cpt.label %>
-                </span>
+                <i class="bi bi-collection"></i><span><%= cpt.label %></span>
               </a>
-              <% }) %>
-                <% } %>
+            <% } %>
+          <% }) %>
+        <% } %>
+        <% } %>
 
-                  <div class="nav-section">Taxonomias</div>
-                  <a href="/admin/categories" title="Categorias"
-                    class="nav-item <%= currentPage === 'categories' ? 'active' : '' %>">
-                    <i class="bi bi-folder"></i><span>Categorias</span>
-                  </a>
-                  <a href="/admin/terms" title="Termos" class="nav-item <%= currentPage === 'terms' ? 'active' : '' %>">
-                    <i class="bi bi-tag"></i><span>Termos</span>
-                  </a>
+        <% if (has('categories') || has('terms')) { %>
+        <div class="nav-section">Taxonomias</div>
+        <% if (has('categories')) { %>
+        <a href="/admin/categories" title="Categorias" class="nav-item <%= currentPage === 'categories' ? 'active' : '' %>">
+          <i class="bi bi-folder"></i><span>Categorias</span>
+        </a>
+        <% } %>
+        <% if (has('terms')) { %>
+        <a href="/admin/terms" title="Termos" class="nav-item <%= currentPage === 'terms' ? 'active' : '' %>">
+          <i class="bi bi-tag"></i><span>Termos</span>
+        </a>
+        <% } %>
+        <% } %>
 
-                  <div class="nav-section">Aparência</div>
-                  <a href="/admin/menus" title="Menus" class="nav-item <%= currentPage === 'menus' ? 'active' : '' %>">
-                    <i class="bi bi-list-nested"></i><span>Menus</span>
-                  </a>
+        <% if (has('menus')) { %>
+        <div class="nav-section">Aparência</div>
+        <a href="/admin/menus" title="Menus" class="nav-item <%= currentPage === 'menus' ? 'active' : '' %>">
+          <i class="bi bi-list-nested"></i><span>Menus</span>
+        </a>
+        <% } %>
 
-                  <% if (user && user.role === 'admin') { %>
-                  <div class="nav-section">Estrutura</div>
-                  <a href="/admin/post-types" title="Tipos de Conteúdo"
-                    class="nav-item <%= currentPage === 'post-types' ? 'active' : '' %>">
-                    <i class="bi bi-collection-fill"></i><span>Tipos de Conteúdo</span>
-                  </a>
-                  <a href="/admin/field-groups" title="Custom Fields"
-                    class="nav-item <%= currentPage === 'field-groups' ? 'active' : '' %>">
-                    <i class="bi bi-sliders"></i><span>Custom Fields</span>
-                  </a>
+        <% if (has('post-types') || has('field-groups')) { %>
+        <div class="nav-section">Estrutura</div>
+        <% if (has('post-types')) { %>
+        <a href="/admin/post-types" title="Tipos de Conteúdo" class="nav-item <%= currentPage === 'post-types' ? 'active' : '' %>">
+          <i class="bi bi-collection-fill"></i><span>Tipos de Conteúdo</span>
+        </a>
+        <% } %>
+        <% if (has('field-groups')) { %>
+        <a href="/admin/field-groups" title="Custom Fields" class="nav-item <%= currentPage === 'field-groups' ? 'active' : '' %>">
+          <i class="bi bi-sliders"></i><span>Custom Fields</span>
+        </a>
+        <% } %>
+        <% } %>
 
-                  <div class="nav-section">Gestão</div>
-                  <a href="/admin/users" title="Utilizadores"
-                    class="nav-item <%= currentPage === 'users' ? 'active' : '' %>">
-                    <i class="bi bi-people"></i><span>Utilizadores</span>
-                  </a>
-                  <a href="/admin/settings" title="Definições"
-                    class="nav-item <%= currentPage === 'settings' ? 'active' : '' %>">
-                    <i class="bi bi-gear"></i><span>Definições</span>
-                  </a>
-                  <% } %>
+        <% if (has('users') || has('roles') || has('settings')) { %>
+        <div class="nav-section">Gestão</div>
+        <% if (has('users')) { %>
+        <a href="/admin/users" title="Utilizadores" class="nav-item <%= currentPage === 'users' ? 'active' : '' %>">
+          <i class="bi bi-people"></i><span>Utilizadores</span>
+        </a>
+        <% } %>
+        <% if (has('roles')) { %>
+        <a href="/admin/roles" title="Funções" class="nav-item <%= currentPage === 'roles' ? 'active' : '' %>">
+          <i class="bi bi-shield-lock"></i><span>Funções</span>
+        </a>
+        <% } %>
+        <% if (has('settings')) { %>
+        <a href="/admin/settings" title="Definições" class="nav-item <%= currentPage === 'settings' ? 'active' : '' %>">
+          <i class="bi bi-gear"></i><span>Definições</span>
+        </a>
+        <% } %>
+        <% } %>
 
       </nav>
 
@@ -101,7 +133,7 @@
             </div>
             <div>
               <div class="username"><%= user.username %></div>
-              <div class="role"><%= user.role === 'admin' ? 'Admin' : user.role === 'editor' ? 'Editor' : 'Subscritor' %></div>
+              <div class="role"><%= user.roleLabel || (user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '') %></div>
             </div>
           </a>
         <% } %>

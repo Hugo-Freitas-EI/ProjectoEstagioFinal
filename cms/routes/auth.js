@@ -6,7 +6,6 @@ const db = require('../db');
 
 // GET /admin/login
 router.get('/login', (req, res) => {
-  if (req.session?.token) return res.redirect('/admin');
   res.render('admin/login', { error: null });
 });
 
