@@ -30,7 +30,7 @@
             user.role === 'editor' ? 'Editor'    : 'Subscritor' %>" disabled>
         </div>
 
-        <div class="mb-4">
+        <div class="mb-3">
           <label class="form-label">Nova password <span class="text-muted">(deixar em branco para não alterar)</span></label>
           <div class="input-group">
             <input type="password" name="password" id="passwordField" class="form-control"
@@ -39,6 +39,18 @@
               <i class="bi bi-eye" id="toggleIcon"></i>
             </button>
           </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label">Confirmar nova password</label>
+          <div class="input-group">
+            <input type="password" id="passwordConfirm" class="form-control"
+              minlength="6" autocomplete="new-password" placeholder="Repetir password">
+            <button type="button" class="btn btn-outline-secondary" id="toggleConfirm" tabindex="-1">
+              <i class="bi bi-eye" id="toggleIconConfirm"></i>
+            </button>
+          </div>
+          <div id="passwordMismatch" class="text-danger mt-1 d-none" style="font-size:13px">As passwords não coincidem.</div>
         </div>
 
         <div class="d-flex gap-2">
@@ -54,15 +66,31 @@
 </div></div>
 
 <script>
-document.getElementById('togglePassword').addEventListener('click', function() {
-  var field = document.getElementById('passwordField');
-  var icon  = document.getElementById('toggleIcon');
-  if (field.type === 'password') {
-    field.type = 'text';
-    icon.className = 'bi bi-eye-slash';
-  } else {
-    field.type = 'password';
-    icon.className = 'bi bi-eye';
+function toggleVis(fieldId, iconId) {
+  var field = document.getElementById(fieldId);
+  var icon  = document.getElementById(iconId);
+  if (field.type === 'password') { field.type = 'text'; icon.className = 'bi bi-eye-slash'; }
+  else { field.type = 'password'; icon.className = 'bi bi-eye'; }
+}
+document.getElementById('togglePassword').addEventListener('click', function() { toggleVis('passwordField', 'toggleIcon'); });
+document.getElementById('toggleConfirm').addEventListener('click', function() { toggleVis('passwordConfirm', 'toggleIconConfirm'); });
+
+var pwField   = document.getElementById('passwordField');
+var pwConfirm = document.getElementById('passwordConfirm');
+var mismatch  = document.getElementById('passwordMismatch');
+
+function checkMatch() {
+  if (!pwField.value && !pwConfirm.value) { mismatch.classList.add('d-none'); return; }
+  mismatch.classList.toggle('d-none', pwField.value === pwConfirm.value);
+}
+pwField.addEventListener('input', checkMatch);
+pwConfirm.addEventListener('input', checkMatch);
+
+document.querySelector('form').addEventListener('submit', function(e) {
+  if (pwField.value !== pwConfirm.value) {
+    e.preventDefault();
+    mismatch.classList.remove('d-none');
+    pwConfirm.focus();
   }
 });
 </script>

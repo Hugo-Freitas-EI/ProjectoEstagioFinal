@@ -154,8 +154,12 @@ router.get('/admin/:section(posts|pages)/:id/revisions/compare', requireAuth, as
   let rightRev;
   if (rightIsCurrentPost) {
     const currentPost = await Post.findByIdWithAuthor(postId);
+    // O post_author do post principal é o criador original.
+    // O autor da última edição está na revisão mais recente.
+    const lastRevision = revisionsChron.length ? revisionsChron[revisionsChron.length - 1] : null;
+    const lastEditor   = lastRevision ? lastRevision.author_name : (currentPost?.author_name || null);
     rightRev = currentPost
-      ? { ...currentPost, author_name: currentPost.author_name || currentPost.username || null, isCurrentPost: true }
+      ? { ...currentPost, author_name: lastEditor, isCurrentPost: true }
       : null;
   } else {
     rightRev = rightId ? await Post.getRevisionById(rightId) : null;

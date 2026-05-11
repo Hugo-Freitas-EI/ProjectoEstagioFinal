@@ -19,11 +19,17 @@ router.use(function(req, res, next) {
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 router.get('/', async function(req, res) {
-  const [[pub]]   = await db.query("SELECT COUNT(*) c FROM wp_posts WHERE post_type='post' AND post_status='publish'");
-  const [[draft]] = await db.query("SELECT COUNT(*) c FROM wp_posts WHERE post_type='post' AND post_status='draft'");
-  const [[pages]] = await db.query("SELECT COUNT(*) c FROM wp_posts WHERE post_type='page' AND post_status='publish'");
+  const authorFilter = req.user.ownContentOnly ? ' AND post_author = ?' : '';
+  const authorParam  = req.user.ownContentOnly ? [req.user.id] : [];
+
+  const [[pub]]   = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type='post' AND post_status='publish'${authorFilter}`, authorParam);
+  const [[draft]] = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type='post' AND post_status='draft'${authorFilter}`, authorParam);
+  const [[pages]] = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type='page' AND post_status='publish'${authorFilter}`, authorParam);
   const [[users]] = await db.query("SELECT COUNT(*) c FROM registers");
-  const [recent]  = await db.query("SELECT ID,post_title,post_name,post_status,post_date FROM wp_posts WHERE post_type='post' AND post_status NOT IN ('auto-draft','revision') ORDER BY post_date DESC LIMIT 6");
+  const [recent]  = await db.query(
+    `SELECT ID,post_title,post_name,post_status,post_date FROM wp_posts WHERE post_type='post' AND post_status NOT IN ('auto-draft','revision')${authorFilter} ORDER BY post_date DESC LIMIT 6`,
+    authorParam
+  );
   res.render('admin/dashboard', {
     pageTitle: 'Dashboard', currentPage: 'dashboard',
     stats: { publishedPosts: pub.c, draftPosts: draft.c, publishedPages: pages.c, totalUsers: users.c },

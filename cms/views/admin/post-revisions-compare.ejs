@@ -364,45 +364,43 @@
                 <!-- Diff Título -->
                 <div class="diff-block">
                   <div class="diff-block-head">Título</div>
-                  <div class="diff-cols">
-                    <div class="diff-col">
-                      <div class="diff-col-label removed">Removido</div>
-                      <% if (titleDiff.hasChanges) { %>
+                  <% if (titleDiff.hasChanges) { %>
+                    <div class="diff-cols">
+                      <div class="diff-col">
+                        <div class="diff-col-label removed">Removido</div>
                         <div class="diff-box"><%- titleDiff.left %></div>
-                        <% } else { %>
-                          <div class="diff-box">
-                            <%= leftRev.post_title %>
-                          </div>
-                          <% } %>
-                    </div>
-                    <div class="diff-col">
-                      <div class="diff-col-label added">Adicionado</div>
-                      <% if (titleDiff.hasChanges) { %>
+                      </div>
+                      <div class="diff-col">
+                        <div class="diff-col-label added">Adicionado</div>
                         <div class="diff-box"><%- titleDiff.right %></div>
-                        <% } else { %>
-                          <div class="diff-no-change">Sem alterações</div>
-                          <% } %>
+                      </div>
                     </div>
-                  </div>
+                  <% } else { %>
+                    <div class="diff-col" style="border:none">
+                      <div class="diff-no-change">Sem alterações — <span class="diff-box" style="display:inline"><%= leftRev.post_title %></span></div>
+                    </div>
+                  <% } %>
                 </div>
 
                 <!-- Diff Conteúdo -->
                 <div class="diff-block">
                   <div class="diff-block-head">Conteúdo</div>
-                  <div class="diff-cols">
-                    <div class="diff-col">
-                      <div class="diff-col-label removed">Removido</div>
-                      <div class="diff-box"><%- contentDiff.left %></div>
-                    </div>
-                    <div class="diff-col">
-                      <div class="diff-col-label added">Adicionado</div>
-                      <% if (contentDiff.hasChanges) { %>
+                  <% if (contentDiff.hasChanges) { %>
+                    <div class="diff-cols">
+                      <div class="diff-col">
+                        <div class="diff-col-label removed">Removido</div>
+                        <div class="diff-box"><%- contentDiff.left %></div>
+                      </div>
+                      <div class="diff-col">
+                        <div class="diff-col-label added">Adicionado</div>
                         <div class="diff-box"><%- contentDiff.right %></div>
-                        <% } else { %>
-                          <div class="diff-no-change">Sem alterações no conteúdo</div>
-                          <% } %>
+                      </div>
                     </div>
-                  </div>
+                  <% } else { %>
+                    <div class="diff-col" style="border:none">
+                      <div class="diff-no-change">Sem alterações no conteúdo</div>
+                    </div>
+                  <% } %>
                 </div>
 
                 <% } %>

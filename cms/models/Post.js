@@ -118,7 +118,7 @@ const Post = {
     return id;
   },
 
-  async update(id, { title, content, excerpt, slug, status, date }) {
+  async update(id, { title, content, excerpt, slug, status, date, authorId = null }) {
     const now = new Date();
     const postDate = date ? new Date(date) : now;
 
@@ -135,13 +135,13 @@ const Post = {
           post_modified, post_modified_gmt, to_ping, pinged, post_content_filtered, guid)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'','','',?)`,
       [
-        oldPost.post_author, oldPost.post_date, oldPost.post_date_gmt,
+        authorId || oldPost.post_author, oldPost.post_date, oldPost.post_date_gmt,
         oldPost.post_content, oldPost.post_title, oldPost.post_excerpt,
         'inherit',
         revisionSlug,
         'revision',
         id,
-        oldPost.post_modified, oldPost.post_modified_gmt,
+        now, now,
         `/?p=${id}&revision=${Date.now()}`
       ]
     );

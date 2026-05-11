@@ -5,7 +5,9 @@ const jwt = require('jsonwebtoken');
 const db = require('../db');
 
 // GET /admin/login
-router.get('/login', (req, res) => {
+router.get('/login', async (req, res) => {
+  const [[{ total }]] = await db.query('SELECT COUNT(*) as total FROM registers');
+  if (total === 0) return res.redirect('/admin/register');
   res.render('admin/login', { error: null });
 });
 

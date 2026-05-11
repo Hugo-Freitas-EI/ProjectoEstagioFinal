@@ -179,7 +179,8 @@ const PostController = {
         content: (post_content || '').trim(),
         excerpt: post_excerpt || '',
         slug: post_name || '',
-        status, date: post_date, termIds, meta
+        status, date: post_date, termIds, meta,
+        authorId: req.user.id
       });
       res.flash('success', status === 'publish' ? 'Publicado!' : 'Rascunho guardado.');
       res.redirect(`/admin/cpt/${postType}/${id}/edit`);

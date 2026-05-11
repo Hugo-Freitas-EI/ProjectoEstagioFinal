@@ -52,9 +52,9 @@ const PostService = {
   },
 
   // Actualiza post + meta + termos
-  async update(postId, { title, content, excerpt, slug, status, date, termIds = [], meta = {} }) {
+  async update(postId, { title, content, excerpt, slug, status, date, termIds = [], meta = {}, authorId = null }) {
     const finalSlug = slug || makeSlug(title);
-    await Post.update(postId, { title, content, excerpt, slug: finalSlug, status, date });
+    await Post.update(postId, { title, content, excerpt, slug: finalSlug, status, date, authorId });
     await Term.syncPost(postId, termIds.map(Number).filter(Boolean));
     await PostMeta.setMany(postId, meta);
   },

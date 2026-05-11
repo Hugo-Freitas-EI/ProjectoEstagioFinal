@@ -1,5 +1,18 @@
 console.log('admin.js carregado');
 
+// ── SIDEBAR SCROLL PERSISTENCE ────────────────────────────────────────────────
+(function () {
+  var nav = document.querySelector('.sidebar-nav');
+  if (!nav) return;
+
+  var saved = sessionStorage.getItem('sidebarScroll');
+  if (saved) nav.scrollTop = Number(saved);
+
+  nav.addEventListener('scroll', function () {
+    sessionStorage.setItem('sidebarScroll', nav.scrollTop);
+  });
+})();
+
 // ── MARKDOWN PREVIEW (client-side only, não bloqueia submit) ──
 function mdPreview(text) {
   if (!text) return '';

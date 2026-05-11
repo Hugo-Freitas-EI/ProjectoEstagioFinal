@@ -68,6 +68,7 @@ app.get('/robots.txt', async function(req, res) {
 
 // ── Rotas ─────────────────────────────────────────────────────────────────────
 app.use('/admin',                    require('./routes/auth'));
+app.use('/admin',                    require('./routes/password-reset'));
 app.use('/admin/post-types',         require('./routes/postTypes'));
 app.use('/admin/cpt/:postType',      require('./routes/cpt'));         // rota dinâmica CPT
 app.use(require('./routes/admin-revisions'));
