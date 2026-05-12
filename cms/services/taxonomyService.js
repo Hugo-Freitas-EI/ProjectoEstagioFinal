@@ -1,16 +1,8 @@
 const Category = require('../models/Category');
 const Term     = require('../models/Term');
-
-function makeSlug(str) {
-  return (str || '').toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-').replace(/-+/g, '-').trim();
-}
+const makeSlug = require('../utils/slug');
 
 const TaxonomyService = {
-
-  // ── CATEGORIES ────────────────────────────────────────────────────────────
 
   async listCategories() {
     const cats = await Category.findAll();
@@ -31,8 +23,6 @@ const TaxonomyService = {
   async deleteCategory(id) {
     await Category.delete(id);
   },
-
-  // ── TERMS ─────────────────────────────────────────────────────────────────
 
   async listTerms(categoryId = null) {
     return Term.findAll({ categoryId });

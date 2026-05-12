@@ -1,5 +1,3 @@
-console.log('admin.js carregado');
-
 // ── SIDEBAR SCROLL PERSISTENCE ────────────────────────────────────────────────
 (function () {
   var nav = document.querySelector('.sidebar-nav');
@@ -13,7 +11,7 @@ console.log('admin.js carregado');
   });
 })();
 
-// ── MARKDOWN PREVIEW (client-side only, não bloqueia submit) ──
+// ── MARKDOWN PREVIEW ──────────────────────────────────────────────────────────
 function mdPreview(text) {
   if (!text) return '';
   return text
@@ -35,10 +33,10 @@ function updatePreview() {
   if (ta && prev) prev.innerHTML = mdPreview(ta.value);
 }
 
-// ── SLUG AUTO ──
+// ── SLUG AUTO ─────────────────────────────────────────────────────────────────
 function slugifyStr(str) {
   return str.toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
@@ -54,7 +52,7 @@ function autoSlug(val) {
   if (previewEl) previewEl.textContent = '/' + (slugEl ? slugEl.value : slugifyStr(val));
 }
 
-// ── INSERIR MARKDOWN ──
+// ── INSERIR MARKDOWN ──────────────────────────────────────────────────────────
 function insertMd(syntax) {
   var ta = document.getElementById('e-content');
   if (!ta) return;
@@ -67,34 +65,7 @@ function insertMd(syntax) {
   updatePreview();
 }
 
-// ── THEME TOGGLE ──
-function initTheme() {
-  var btn  = document.getElementById('theme-toggle');
-  var icon = document.getElementById('theme-icon');
-  if (!btn) return;
-
-  function getEffective() {
-    var saved = localStorage.getItem('theme');
-    if (saved === 'light' || saved === 'dark') return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  }
-
-  function updateIcon() {
-    if (!icon) return;
-    icon.className = getEffective() === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-fill';
-  }
-
-  btn.addEventListener('click', function() {
-    var next = getEffective() === 'dark' ? 'light' : 'dark';
-    localStorage.setItem('theme', next);
-    document.documentElement.style.colorScheme = next;
-    updateIcon();
-  });
-
-  updateIcon();
-}
-
-// ── SIDEBAR COLLAPSE ──
+// ── SIDEBAR COLLAPSE ──────────────────────────────────────────────────────────
 function initSidebarToggle() {
   var sidebar = document.getElementById('sidebar');
   var mainContent = document.getElementById('mainContent');
@@ -117,7 +88,6 @@ function initSidebarToggle() {
     localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
   }
 
-  // Restaurar estado guardado
   if (localStorage.getItem('sidebarCollapsed') === '1') {
     setCollapsed(true);
   }
@@ -127,12 +97,12 @@ function initSidebarToggle() {
   });
 }
 
-// ── AVISO ALTERAÇÕES NÃO GUARDADAS ──
+// ── AVISO ALTERAÇÕES NÃO GUARDADAS ───────────────────────────────────────────
 function initUnsavedChanges() {
   var isDirty = false;
   var pendingUrl = null;
 
-  var modal   = document.getElementById('unsaved-modal');
+  var modal    = document.getElementById('unsaved-modal');
   var btnLeave = document.getElementById('unsaved-leave');
   var btnStay  = document.getElementById('unsaved-stay');
 
@@ -141,22 +111,18 @@ function initUnsavedChanges() {
   function showModal() { modal.classList.add('active'); }
   function hideModal() { modal.classList.remove('active'); }
 
-  // Marca sujo quando qualquer campo de formulário com data-unsaved muda
   document.querySelectorAll('form[data-unsaved]').forEach(function(form) {
     form.addEventListener('input',  function() { isDirty = true; });
     form.addEventListener('change', function() { isDirty = true; });
-    // Limpa ao submeter (guardar/publicar)
     form.addEventListener('submit', function() { isDirty = false; });
   });
 
-  // Aviso do browser para refresh/fechar aba/back
   window.addEventListener('beforeunload', function(e) {
     if (!isDirty) return;
     e.preventDefault();
     e.returnValue = '';
   });
 
-  // Interceta cliques em links de navegação interna
   document.addEventListener('click', function(e) {
     if (!isDirty) return;
     var link = e.target.closest('a[href]');
@@ -185,7 +151,6 @@ function initUnsavedChanges() {
     });
   }
 
-  // Fechar modal ao clicar fora do diálogo
   modal.addEventListener('click', function(e) {
     if (e.target === modal) {
       hideModal();
@@ -194,12 +159,21 @@ function initUnsavedChanges() {
   });
 }
 
-// ── INICIALIZAÇÃO ──
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function showToast(msg, type) {
+  var el = document.getElementById('toast');
+  if (!el) return;
+  document.getElementById('toast-icon').textContent = type === 'success' ? '✓' : '✕';
+  document.getElementById('toast-msg').textContent = msg;
+  el.className = 'show ' + type;
+  setTimeout(function() { el.className = ''; }, 3000);
+}
+
+// ── INICIALIZAÇÃO ─────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
-  initTheme();
   initSidebarToggle();
   initUnsavedChanges();
-  // Slug manual
+
   var slugEl = document.getElementById('e-slug');
   if (slugEl) {
     slugEl.addEventListener('input', function() {
@@ -209,10 +183,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Preview inicial
   updatePreview();
 
-  // Mostrar flash message como toast se existir
   var flash = document.getElementById('flash-data');
   if (flash) {
     var msg = flash.dataset.msg;
@@ -220,12 +192,3 @@ document.addEventListener('DOMContentLoaded', function() {
     if (msg) showToast(msg, type);
   }
 });
-
-function showToast(msg, type) {
-  var el = document.getElementById('toast');
-  if (!el) return;
-  document.getElementById('toast-icon').textContent = type === 'success' ? '✓' : '✕';
-  document.getElementById('toast-msg').textContent = msg;
-  el.className = 'show ' + type;
-  setTimeout(function() { el.className = ''; }, 3000);
-}

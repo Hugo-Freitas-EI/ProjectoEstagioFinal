@@ -2,6 +2,7 @@ const PostService     = require('../services/postService');
 const TaxonomyService = require('../services/taxonomyService');
 const PostType        = require('../models/PostType');
 const Post            = require('../models/Post');
+const Term            = require('../models/Term');
 
 function extractMeta(body) {
   const meta = {};
@@ -11,14 +12,11 @@ function extractMeta(body) {
   return meta;
 }
 
-// Devolve o label legível de um postType
 async function getPostTypeLabel(name) {
   const pt = await PostType.findByName(name);
   return pt?.label || name;
 }
 
-// Devolve as taxonomias (categories) associadas ao postType
-// Para post/page usa todas; para CPTs só as associadas
 async function getRelevantTerms(postTypeName) {
   const systemTypes = ['post', 'page'];
   if (systemTypes.includes(postTypeName)) {
@@ -26,12 +24,9 @@ async function getRelevantTerms(postTypeName) {
   }
   const taxonomies = await PostType.getTaxonomies(postTypeName);
   if (!taxonomies.length) return [];
-  const { Term } = require('../models/Term') || require('../models/Term');
-  // buscar termos de cada taxonomia associada
-  const Term2 = require('../models/Term');
   const allTerms = [];
   for (const cat of taxonomies) {
-    const terms = await Term2.findAll({ categoryId: cat.id });
+    const terms = await Term.findAll({ categoryId: cat.id });
     allTerms.push(...terms);
   }
   return allTerms;
@@ -119,11 +114,10 @@ const PostController = {
       return res.redirect(`/admin/cpt/${postType}`);
     }
 
-    const allTerms       = await getRelevantTerms(postType);
+    const allTerms        = await getRelevantTerms(postType);
     const selectedTermIds = post.terms.map(t => t.id);
-    const fieldGroups    = await PostService.getEditorData(post.post_type, post.ID);
+    const fieldGroups     = await PostService.getEditorData(post.post_type, post.ID);
 
-    // Revisões
     const rawRevisions = await Post.getRevisions(post.ID);
     const now          = new Date();
     const fmt          = new Intl.RelativeTimeFormat('pt-PT', { numeric: 'auto' });
@@ -137,12 +131,11 @@ const PostController = {
       return { ...rev, timeAgo, exactDateFormatted: exact, isAutoSave: rev.post_name.includes('autosave') };
     });
 
-    // URL pública do post consoante o tipo
     let viewUrl = null;
     if (post.post_status === 'publish' && post.post_name) {
-      if (post.post_type === 'post')        viewUrl = `/post/${post.post_name}`;
-      else if (post.post_type === 'page')   viewUrl = `/page/${post.post_name}`;
-      else                                  viewUrl = `/${post.post_type}/${post.post_name}`;
+      if (post.post_type === 'post')      viewUrl = `/post/${post.post_name}`;
+      else if (post.post_type === 'page') viewUrl = `/page/${post.post_name}`;
+      else                                viewUrl = `/${post.post_type}/${post.post_name}`;
     }
 
     res.render('admin/post-editor', {
@@ -169,9 +162,9 @@ const PostController = {
     }
 
     const { post_title, post_content, post_excerpt, post_name, post_date, action } = req.body;
-    const status   = action === 'publish' ? 'publish' : 'draft';
-    const termIds  = [].concat(req.body.term_ids || []);
-    const meta     = extractMeta(req.body);
+    const status  = action === 'publish' ? 'publish' : 'draft';
+    const termIds = [].concat(req.body.term_ids || []);
+    const meta    = extractMeta(req.body);
 
     try {
       await PostService.update(id, {

@@ -1,9 +1,10 @@
 const PostType = require('../models/PostType');
 const Category = require('../models/Category');
 
-function makeSlug(str) {
+// Converte label em identificador (usa _ para nomes de BD)
+function makeId(str) {
   return (str || '').toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_')
     .replace(/^_|_$/g, '');
 }
@@ -44,7 +45,7 @@ const PostTypeController = {
         categories, selectedCategoryIds: [].concat(category_ids || [])
       });
     }
-    const finalName = (name || '').trim() || makeSlug(label);
+    const finalName = (name || '').trim() || makeId(label);
     try {
       await PostType.create({ name: finalName, label: label.trim(), description, createdBy: req.user?.id });
       await PostType.syncTaxonomies(finalName, [].concat(category_ids || []).filter(Boolean));
