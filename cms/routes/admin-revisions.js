@@ -201,7 +201,8 @@ router.post('/admin/:section(posts|pages)/:id/revisions/:revId/restore', require
   } catch (err) {
     res.flash('error', 'Erro ao repor revisão: ' + err.message);
   }
-  res.redirect(`/admin/${section}/${id}/edit`);
+  const postTypeName = section === 'pages' ? 'page' : 'post';
+  res.redirect(`/admin/cpt/${postTypeName}/${id}/edit`);
 });
 
 module.exports = router;
