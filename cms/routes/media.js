@@ -98,45 +98,57 @@ router.get('/api/list', requirePermission('media.read'), async (req, res) => {
 // =============================
 // POST - UPLOAD
 // =============================
-router.post('/upload', requirePermission('media.write'), upload.single('file'), async (req, res) => {
-  if (!req.file) return res.redirect('/admin/media');
-  try {
-    const titulo    = req.file.originalname;
-    const ficheiroUrl = req.file.path; // URL do Cloudinary
-    const autorId   = req.user?.id || null;
-    const folderId  = req.body.folder_id || null;
-
-    await db.query(
-      `INSERT INTO media (titulo, ficheiro_url, mime_type, data_upload, autor_id, parent_id)
-       VALUES (?, ?, ?, NOW(), ?, ?)`,
-      [titulo, ficheiroUrl, req.file.mimetype, autorId, folderId]
-    );
-    res.redirect('/admin/media');
-  } catch (error) {
-    console.error('ERRO NO INSERT:', error);
-    res.redirect('/admin/media');
-  }
+router.post('/upload', requirePermission('media.write'), (req, res, next) => {
+  upload.single('file')(req, res, async (err) => {
+    if (err) {
+      console.error('ERRO NO UPLOAD (Cloudinary):', err);
+      req.flash('error', 'Erro no upload: ' + err.message);
+      return res.redirect('/admin/media');
+    }
+    if (!req.file) return res.redirect('/admin/media');
+    try {
+      const ficheiroUrl = req.file.path;
+      const autorId     = req.user?.id || null;
+      const folderId    = req.body.folder_id || null;
+      await db.query(
+        `INSERT INTO media (titulo, ficheiro_url, mime_type, data_upload, autor_id, parent_id)
+         VALUES (?, ?, ?, NOW(), ?, ?)`,
+        [req.file.originalname, ficheiroUrl, req.file.mimetype, autorId, folderId]
+      );
+      res.redirect('/admin/media');
+    } catch (error) {
+      console.error('ERRO NO INSERT:', error);
+      req.flash('error', 'Erro ao guardar ficheiro na base de dados.');
+      res.redirect('/admin/media');
+    }
+  });
 });
 
 // =============================
 // POST - UPLOAD (API / JSON)
 // =============================
-router.post('/upload-api', requirePermission('media.write'), upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Nenhum ficheiro recebido.' });
-  const ficheiroUrl = req.file.path; // URL do Cloudinary
-  const autorId     = req.user?.id || null;
-  const folderId    = req.body.folder_id || null;
-  try {
-    await db.query(
-      `INSERT INTO media (titulo, ficheiro_url, mime_type, data_upload, autor_id, parent_id)
-       VALUES (?, ?, ?, NOW(), ?, ?)`,
-      [req.file.originalname, ficheiroUrl, req.file.mimetype, autorId, folderId]
-    );
-    res.json({ url: ficheiroUrl });
-  } catch (error) {
-    console.error('ERRO NO INSERT (upload-api):', error);
-    res.status(500).json({ error: error.message });
-  }
+router.post('/upload-api', requirePermission('media.write'), (req, res) => {
+  upload.single('file')(req, res, async (err) => {
+    if (err) {
+      console.error('ERRO NO UPLOAD-API (Cloudinary):', err);
+      return res.status(500).json({ error: err.message });
+    }
+    if (!req.file) return res.status(400).json({ error: 'Nenhum ficheiro recebido.' });
+    try {
+      const ficheiroUrl = req.file.path;
+      const autorId     = req.user?.id || null;
+      const folderId    = req.body.folder_id || null;
+      await db.query(
+        `INSERT INTO media (titulo, ficheiro_url, mime_type, data_upload, autor_id, parent_id)
+         VALUES (?, ?, ?, NOW(), ?, ?)`,
+        [req.file.originalname, ficheiroUrl, req.file.mimetype, autorId, folderId]
+      );
+      res.json({ url: ficheiroUrl });
+    } catch (error) {
+      console.error('ERRO NO INSERT (upload-api):', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 });
 
 // =============================

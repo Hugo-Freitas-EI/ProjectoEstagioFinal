@@ -566,15 +566,17 @@
                         </div>
                       </div>
                     </div>`;
-                } else if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(item.titulo)) {
+                } else if (item.mime_type && item.mime_type.startsWith('image/')) {
                   // 🖼 IMAGEM
+                  var safeUrl = item.ficheiro_url || '';
+                  var safeTitulo = (item.titulo || '').replace(/'/g, "\\'");
                   col.innerHTML = `
                     <div class="card media-card-select shadow-sm h-100" style="cursor:pointer;border-color:var(--border)"
-                         onclick="selecionarImagemMedia('${item.ficheiro_url}', '${item.titulo.replace(/'/g, "\\'")}')">
-                      <img src="${item.ficheiro_url}" class="card-img-top" style="height:120px;object-fit:cover" loading="lazy" alt="${item.titulo}">
+                         onclick="selecionarImagemMedia('${safeUrl}', '${safeTitulo}')">
+                      <img src="${safeUrl}" class="card-img-top" style="height:120px;object-fit:cover" loading="lazy" alt="${item.titulo || ''}">
                       <div class="card-body p-2 border-top" style="background:var(--surface)">
-                        <div class="text-truncate small" style="color:var(--text)" title="${item.titulo}">
-                          ${item.titulo}
+                        <div class="text-truncate small" style="color:var(--text)" title="${item.titulo || ''}">
+                          ${item.titulo || ''}
                         </div>
                       </div>
                     </div>`;
