@@ -31,6 +31,7 @@ app.use(async function(req, res, next) {
     res.locals.user        = req.session.user || null;
     res.locals.siteName    = s.site_title       || process.env.SITE_NAME    || 'NodeCMS';
     res.locals.siteTagline = s.site_description || process.env.SITE_TAGLINE || '';
+    res.locals.siteLogoUrl = s.site_logo        || null;
     res.locals.siteIcon    = s.site_icon        || null;
     res.locals.siteNoIndex = s.search_engine_visibility === '1';
   } catch {
@@ -90,9 +91,18 @@ app.use(function(err, req, res, next) {
 });
 
 const PORT = process.env.PORT || 3000;
-Role.migrate()
-  .then(() => app.listen(PORT, function() {
+
+function startServer() {
+  app.listen(PORT, function() {
     console.log('NodeCMS a correr em http://localhost:' + PORT);
     console.log('Admin:  http://localhost:' + PORT + '/admin');
-  }))
-  .catch(err => { console.error('Erro na migração de roles:', err); process.exit(1); });
+  });
+}
+
+Role.migrate()
+  .then(startServer)
+  .catch(err => {
+    console.error('Erro na migração de roles:', err);
+    console.warn('A arrancar sem migrações de roles porque a BD não está acessível agora.');
+    startServer();
+  });

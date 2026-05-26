@@ -33,6 +33,56 @@
         <div class="form-text">Em poucas palavras, explique do que trata este site.</div>
       </div>
 
+      <%# ── Logótipo do site ──────────────────────────────────────────────────── %>
+      <div class="mb-4">
+        <label class="form-label fw-semibold">Logótipo</label>
+        <div class="d-flex align-items-start gap-3 flex-wrap">
+
+          <%# Preview do logótipo actual %>
+          <div id="logo-preview-wrap">
+            <% if (settings.site_logo) { %>
+              <img
+                id="logo-preview"
+                src="<%= settings.site_logo %>"
+                alt="Logótipo actual"
+                style="max-width:200px;max-height:64px;object-fit:contain;border-radius:6px;border:1px solid var(--bs-border-color);background:var(--bs-body-bg);padding:4px"
+              >
+            <% } else { %>
+              <div
+                id="logo-preview"
+                style="width:200px;height:64px;border-radius:6px;border:2px dashed var(--bs-border-color);display:flex;align-items:center;justify-content:center;color:var(--bs-secondary-color)"
+              >
+                <i class="bi bi-image fs-4"></i>
+              </div>
+            <% } %>
+          </div>
+
+          <div>
+            <label for="site_logo_file" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-upload me-1"></i> Escolher logótipo
+            </label>
+            <input
+              type="file"
+              id="site_logo_file"
+              name="site_logo_file"
+              accept="image/*"
+              class="d-none"
+            >
+            <% if (settings.site_logo) { %>
+              <button type="button" id="remove-logo" class="btn btn-outline-danger btn-sm ms-2">
+                <i class="bi bi-x-lg me-1"></i> Remover
+              </button>
+            <% } %>
+            <div class="form-text mt-1">
+              O logótipo aparece no cabeçalho do site e noutras áreas de destaque.<br>
+              Dimensão recomendada: 300 × 100 píxeis (fundo transparente, PNG ou SVG).
+            </div>
+          </div>
+        </div>
+
+        <input type="hidden" id="site_logo" name="site_logo" value="<%= settings.site_logo || '' %>">
+      </div>
+
       <%# ── Ícone do site ───────────────────────────────────────────────────── %>
       <div class="mb-4">
         <label class="form-label fw-semibold">Ícone do site</label>
@@ -135,6 +185,55 @@
     setPreview(localUrl);
 
     // Upload to /admin/media (returns JSON { url })
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res  = await fetch('/admin/media/upload-api', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.url) {
+        hiddenInput.value = data.url;
+        setPreview(data.url);
+      } else {
+        alert('Erro ao carregar a imagem: ' + (data.error || 'desconhecido'));
+        hiddenInput.value = '';
+        setPreview('');
+      }
+    } catch (err) {
+      alert('Erro de rede ao carregar a imagem.');
+      hiddenInput.value = '';
+      setPreview('');
+    }
+  });
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', function () {
+      hiddenInput.value = '';
+      fileInput.value   = '';
+      setPreview('');
+      removeBtn.remove();
+    });
+  }
+}());
+
+(function () {
+  const fileInput   = document.getElementById('site_logo_file');
+  const hiddenInput = document.getElementById('site_logo');
+  const removeBtn   = document.getElementById('remove-logo');
+  const previewWrap = document.getElementById('logo-preview-wrap');
+
+  function setPreview(src) {
+    previewWrap.innerHTML = src
+      ? `<img id="logo-preview" src="${src}" alt="Logótipo" style="max-width:200px;max-height:64px;object-fit:contain;border-radius:6px;border:1px solid var(--bs-border-color);background:var(--bs-body-bg);padding:4px">`
+      : `<div id="logo-preview" style="width:200px;height:64px;border-radius:6px;border:2px dashed var(--bs-border-color);display:flex;align-items:center;justify-content:center;color:var(--bs-secondary-color)"><i class="bi bi-image fs-4"></i></div>`;
+  }
+
+  fileInput.addEventListener('change', async function () {
+    const file = this.files[0];
+    if (!file) return;
+
+    setPreview(URL.createObjectURL(file));
+
     const formData = new FormData();
     formData.append('file', file);
 

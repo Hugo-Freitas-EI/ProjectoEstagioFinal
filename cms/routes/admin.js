@@ -118,6 +118,7 @@ router.post('/settings', requirePermission('settings.write'), async function(req
   const map = {
     site_title:               req.body.site_title               || null,
     site_description:         req.body.site_description         || null,
+    site_logo:                req.body.site_logo                || null,
     site_icon:                req.body.site_icon                || null,
     search_engine_visibility: req.body.search_engine_visibility === '1' ? '1' : '0'
   };
