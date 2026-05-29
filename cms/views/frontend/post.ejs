@@ -1,7 +1,10 @@
 <%- include('../partials/frontend-head', { pageTitle: post.post_title, metaDesc: post.post_excerpt }) %>
 <%- include('../partials/frontend-header', { currentPath: '/post/' + post.post_name }) %>
 
-<div class="container" style="max-width:680px;padding:48px 24px">
+<% var _sb = typeof menuLocations !== 'undefined' && menuLocations ? menuLocations.sidebar : null; %>
+<div class="container" style="max-width:<%= _sb && _sb.length ? '1140px' : '680px' %>;padding:48px 24px">
+<div class="<%= _sb && _sb.length ? 'page-with-sidebar' : '' %>">
+<div>
 
   <a class="back-link" href="/">← Voltar</a>
 
@@ -66,7 +69,9 @@
 
   </article>
 
-
+</div>
+<%- include('../partials/frontend-sidebar') %>
+</div>
 </div>
 
 <%- include('../partials/frontend-footer') %>

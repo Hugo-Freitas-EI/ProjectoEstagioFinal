@@ -6,13 +6,20 @@ const PostType     = require('../models/PostType');
 const PostMeta     = require('../models/PostMeta');
 const SiteSetting  = require('../models/SiteSetting');
 
+async function sysName(key) {
+  const stored = await SiteSetting.get(`sys_name_${key}`);
+  return stored || key;
+}
+
 marked.setOptions({ breaks: true, gfm: true });
 
 // Carrega páginas para o menu de navegação (fallback)
 async function getNavPages() {
   try {
+    const pageName = await sysName('page');
     const [pages] = await db.query(
-      "SELECT post_title,post_name FROM wp_posts WHERE post_type='page' AND post_status='publish' ORDER BY menu_order ASC, post_title ASC"
+      'SELECT post_title,post_name FROM wp_posts WHERE post_type=? AND post_status=\'publish\' ORDER BY menu_order ASC, post_title ASC',
+      [pageName]
     );
     return pages;
   } catch { return []; }
@@ -25,9 +32,9 @@ function buildMenuTree(items, parentId = null) {
     .map(i => ({ ...i, children: buildMenuTree(items, i.id) }));
 }
 
-async function getHeaderMenu() {
+async function getMenuForLocation(locationKey) {
   try {
-    const menuId = await SiteSetting.get('menu_location_header');
+    const menuId = await SiteSetting.get('menu_location_' + locationKey);
     if (!menuId) return null;
     const [items] = await db.query(
       'SELECT * FROM menu_itens WHERE menu_id = ? ORDER BY ordem ASC', [menuId]
@@ -36,9 +43,19 @@ async function getHeaderMenu() {
   } catch { return null; }
 }
 
-// Injeta headerMenu em todos os pedidos frontend
+// Injeta headerMenu + todos os menus de localização em todos os pedidos frontend
 router.use(async (req, res, next) => {
-  res.locals.headerMenu = await getHeaderMenu();
+  res.locals.headerMenu = await getMenuForLocation('header');
+  try {
+    const custom = JSON.parse(await SiteSetting.get('menu_locations_custom') || '[]');
+    const menuLocations = { header: res.locals.headerMenu };
+    for (const loc of custom) {
+      menuLocations[loc.key] = await getMenuForLocation(loc.key);
+    }
+    res.locals.menuLocations = menuLocations;
+  } catch {
+    res.locals.menuLocations = { header: res.locals.headerMenu };
+  }
   next();
 });
 
@@ -65,22 +82,24 @@ async function getTermsForPosts(postIds) {
 // ── GET / — Homepage ───────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
-    const page   = parseInt(req.query.page) || 1;
-    const limit  = 10;
-    const offset = (page - 1) * limit;
+    const page     = parseInt(req.query.page) || 1;
+    const limit    = 10;
+    const offset   = (page - 1) * limit;
+    const postName = await sysName('post');
 
     const [posts] = await db.query(
       `SELECT p.ID, p.post_title, p.post_name, p.post_excerpt, p.post_content, p.post_date,
               r.username AS post_author_name
        FROM wp_posts p
        LEFT JOIN registers r ON p.post_author = r.id
-       WHERE p.post_type='post' AND p.post_status='publish'
+       WHERE p.post_type=? AND p.post_status='publish'
        ORDER BY p.post_date DESC LIMIT ? OFFSET ?`,
-      [limit, offset]
+      [postName, limit, offset]
     );
 
     const [[{ total }]] = await db.query(
-      "SELECT COUNT(*) total FROM wp_posts WHERE post_type='post' AND post_status='publish'"
+      "SELECT COUNT(*) total FROM wp_posts WHERE post_type=? AND post_status='publish'",
+      [postName]
     );
 
     const termsByPost = await getTermsForPosts(posts.map(p => p.ID));
@@ -99,12 +118,13 @@ router.get('/', async (req, res) => {
 // ── GET /post/:slug ────────────────────────────────────────────────────────────
 router.get('/post/:slug', async (req, res) => {
   try {
+    const postName = await sysName('post');
     const [rows] = await db.query(
       `SELECT p.*, r.username AS post_author_name
        FROM wp_posts p
        LEFT JOIN registers r ON p.post_author = r.id
-       WHERE p.post_name = ? AND p.post_type = 'post' AND p.post_status = 'publish'`,
-      [req.params.slug]
+       WHERE p.post_name = ? AND p.post_type = ? AND p.post_status = 'publish'`,
+      [req.params.slug, postName]
     );
     if (!rows.length) {
       return res.status(404).render('frontend/404', { pageTitle: '404', navPages: await getNavPages() });
@@ -117,12 +137,12 @@ router.get('/post/:slug', async (req, res) => {
     const meta     = await PostMeta.findByPost(post.ID);
 
     const [[prev]] = await db.query(
-      "SELECT ID, post_title, post_name FROM wp_posts WHERE post_type='post' AND post_status='publish' AND post_date < ? ORDER BY post_date DESC LIMIT 1",
-      [post.post_date]
+      "SELECT ID, post_title, post_name FROM wp_posts WHERE post_type=? AND post_status='publish' AND post_date < ? ORDER BY post_date DESC LIMIT 1",
+      [postName, post.post_date]
     );
     const [[next]] = await db.query(
-      "SELECT ID, post_title, post_name FROM wp_posts WHERE post_type='post' AND post_status='publish' AND post_date > ? ORDER BY post_date ASC LIMIT 1",
-      [post.post_date]
+      "SELECT ID, post_title, post_name FROM wp_posts WHERE post_type=? AND post_status='publish' AND post_date > ? ORDER BY post_date ASC LIMIT 1",
+      [postName, post.post_date]
     );
 
     res.render('frontend/post', {
@@ -138,9 +158,10 @@ router.get('/post/:slug', async (req, res) => {
 // ── GET /page/:slug ────────────────────────────────────────────────────────────
 router.get('/page/:slug', async (req, res) => {
   try {
+    const pageName = await sysName('page');
     const [rows] = await db.query(
-      "SELECT * FROM wp_posts WHERE post_name=? AND post_type='page' AND post_status='publish'",
-      [req.params.slug]
+      'SELECT * FROM wp_posts WHERE post_name=? AND post_type=? AND post_status=\'publish\'',
+      [req.params.slug, pageName]
     );
     if (!rows.length) {
       return res.status(404).render('frontend/404', { pageTitle: '404', navPages: await getNavPages() });
@@ -245,18 +266,20 @@ router.get('/:postType', async (req, res, next) => {
   }
 });
 
-// ── GET /:postType/:slug — single CPT ─────────────────────────────────────────
-router.get('/:postType/:slug', async (req, res, next) => {
+// ── GET /:prefix/:slug — single CPT ou tipo de sistema com prefixo personalizado ─
+router.get('/:prefix/:slug', async (req, res, next) => {
   try {
-    const pt = await PostType.findByName(req.params.postType);
-    if (!pt || pt.system) return next();
+    const { prefix, slug } = req.params;
+    let pt = await PostType.findByName(prefix);
+    if (!pt || pt.system) pt = await PostType.findByPrefix(prefix);
+    if (!pt) return next();
 
     const [rows] = await db.query(
       `SELECT p.*, r.username AS post_author_name
        FROM wp_posts p
        LEFT JOIN registers r ON p.post_author = r.id
        WHERE p.post_name = ? AND p.post_type = ? AND p.post_status = 'publish'`,
-      [req.params.slug, pt.name]
+      [slug, pt.name]
     );
     if (!rows.length) {
       return res.status(404).render('frontend/404', { pageTitle: '404', navPages: await getNavPages() });
@@ -277,11 +300,15 @@ router.get('/:postType/:slug', async (req, res, next) => {
       [pt.name, post.post_date]
     );
 
-    res.render('frontend/cpt-single', {
+    const template = pt.name === 'post' ? 'frontend/post'
+                   : pt.name === 'page' ? 'frontend/page'
+                   : 'frontend/cpt-single';
+
+    res.render(template, {
       pageTitle: post.post_title,
       metaDesc: post.post_excerpt,
       postType: pt,
-      post, bodyHtml, navPages, terms, meta,
+      post, page: post, bodyHtml, navPages, terms, meta,
       prev: prevPost || null, next: nextPost || null
     });
   } catch (err) {

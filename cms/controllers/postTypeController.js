@@ -18,7 +18,11 @@ const PostTypeController = {
       pt.taxonomies = await PostType.getTaxonomies(pt.name);
     }
     const systemTypes = await Promise.all(
-      PostType.SYSTEM.map(async s => ({ ...s, taxonomies: await PostType.getTaxonomies(s.name) }))
+      PostType.SYSTEM.map(async s => {
+        const pt = await PostType.findByName(s.name);
+        pt.taxonomies = await PostType.getTaxonomies(s.name);
+        return pt;
+      })
     );
     res.render('admin/post-types/index', {
       pageTitle: 'Tipos de Conteúdo', currentPage: 'post-types',
@@ -73,16 +77,18 @@ const PostTypeController = {
   },
 
   async update(req, res) {
-    const { label, description, category_ids } = req.body;
+    const { label, description, url_prefix, category_ids, name: newName } = req.body;
     const ptName = req.params.name;
     const pt = await PostType.findByName(ptName);
     if (!pt) return res.redirect('/admin/post-types');
     try {
-      if (!pt.system) {
+      if (pt.system) {
+        await PostType.updateSystem(pt.sysKey || ptName, { label, prefix: url_prefix, newName });
+      } else {
         await PostType.update(pt.id, { label, description, updatedBy: req.user?.id });
       }
       await PostType.syncTaxonomies(ptName, [].concat(category_ids || []).filter(Boolean));
-      res.flash('success', pt.system ? 'Taxonomias atualizadas.' : 'Tipo de conteúdo atualizado.');
+      res.flash('success', 'Tipo de conteúdo atualizado.');
       res.redirect('/admin/post-types');
     } catch (err) {
       res.flash('error', err.message);

@@ -21,7 +21,9 @@
       <div class="card-header d-flex align-items-center justify-content-between">
         <div>
           <span style="font-family:'DM Serif Display',serif;font-size:15px"><%= g.name %></span>
-          <span class="badge bg-primary ms-2" style="font-size:10px"><%= g.post_type %></span>
+          <% (g.post_types || []).forEach(function(pt) { %>
+            <span class="badge bg-primary ms-1" style="font-size:10px"><%= pt %></span>
+          <% }) %>
           <span class="text-muted ms-2" style="font-size:11px;font-family:'DM Mono',monospace">
             <%= g.fields.length %> campo(s)
           </span>

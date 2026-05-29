@@ -15,41 +15,55 @@
       <form method="POST" action="/admin/post-types<%= isEdit ? '/' + postType.name : '' %>" data-unsaved>
 
         <div class="mb-3">
-          <label class="form-label d-flex align-items-center gap-1">
-            Label (aparece na sidebar) *
-            <% if (typeof isSystem !== 'undefined' && isSystem) { %><i class="bi bi-lock-fill" style="font-size:10px;color:var(--text2)"></i><% } %>
-          </label>
+          <label class="form-label">Label (aparece na sidebar) *</label>
           <input type="text" name="label" class="form-control"
             value="<%= postType ? postType.label : '' %>"
             placeholder="Ex: Produtos, Eventos, Noticias"
             oninput="gerarName(this.value)"
-            <% if (typeof isSystem !== 'undefined' && isSystem) { %>readonly disabled<% } else { %>required autofocus<% } %>>
+            <% if (!(typeof isSystem !== 'undefined' && isSystem)) { %>required autofocus<% } %>>
         </div>
 
         <div class="mb-3">
           <label class="form-label d-flex align-items-center gap-1">
-            Name (slug interno)
-            <span class="text-muted" style="text-transform:none;letter-spacing:0;font-size:11px">— usado no URL e na BD</span>
-            <% if (typeof isSystem !== 'undefined' && isSystem) { %><i class="bi bi-lock-fill" style="font-size:10px;color:var(--text2)"></i><% } %>
+            Name (identificador interno)
+            <% if (!(typeof isSystem !== 'undefined' && isSystem) && isEdit) { %>
+              <i class="bi bi-lock-fill" style="font-size:10px;color:var(--text2)"></i>
+            <% } %>
           </label>
-          <input type="text" name="name" id="pt-name" class="form-control"
+          <input type="text" name="name" id="pt-name" class="form-control<%= (isEdit && !(typeof isSystem !== 'undefined' && isSystem)) ? ' bg-body-secondary' : '' %>"
             value="<%= postType ? postType.name : '' %>"
             placeholder="produto, evento, noticia"
             data-edited="<%= isEdit ? 'true' : 'false' %>"
-            readonly <% if (typeof isSystem !== 'undefined' && isSystem) { %>disabled<% } %>>
+            <% if (isEdit && !(typeof isSystem !== 'undefined' && isSystem)) { %>readonly<% } %>>
           <div class="form-text">
-            <% if (typeof isSystem !== 'undefined' && isSystem) { %>Tipo de sistema — não pode ser alterado.<% } else if (isEdit) { %>O name não pode ser alterado após criação.<% } else { %>Gerado automaticamente do label. Só letras, números e _.<% } %>
+            <% if (typeof isSystem !== 'undefined' && isSystem) { %>
+              Renomear migra os posts na base de dados. Só letras, números e _.
+            <% } else if (isEdit) { %>
+              Não pode ser alterado após criação.
+            <% } else { %>
+              Gerado automaticamente do label. Só letras, números e _.
+            <% } %>
           </div>
         </div>
 
+        <% if (typeof isSystem !== 'undefined' && isSystem) { %>
         <div class="mb-4">
-          <label class="form-label d-flex align-items-center gap-1">
-            Descrição
-            <% if (typeof isSystem !== 'undefined' && isSystem) { %><i class="bi bi-lock-fill" style="font-size:10px;color:var(--text2)"></i><% } %>
-          </label>
-          <textarea name="description" class="form-control" style="min-height:70px"
-            <% if (typeof isSystem !== 'undefined' && isSystem) { %>readonly disabled<% } %>><%= postType ? (postType.description || '') : '' %></textarea>
+          <label class="form-label">Prefixo URL</label>
+          <div class="input-group">
+            <span class="input-group-text text-muted" style="font-size:13px">/</span>
+            <input type="text" name="url_prefix" class="form-control"
+              value="<%= postType && postType.prefix ? postType.prefix : postType.name %>"
+              placeholder="<%= postType ? postType.name : '' %>">
+            <span class="input-group-text text-muted" style="font-size:13px">/slug</span>
+          </div>
+          <div class="form-text">Prefixo usado nos URLs públicos. Ex: <code>artigo</code> → <code>/artigo/meu-post</code></div>
         </div>
+        <% } else { %>
+        <div class="mb-4">
+          <label class="form-label">Descrição</label>
+          <textarea name="description" class="form-control" style="min-height:70px"><%= postType ? (postType.description || '') : '' %></textarea>
+        </div>
+        <% } %>
 
         <!-- Taxonomias associadas -->
         <% if (categories && categories.length) { %>
@@ -126,7 +140,7 @@ function gerarName(val) {
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_|_$/g, '');
   var el = document.getElementById('pt-name');
-  if (el && !el.readOnly) el.value = slug;
+  if (el) el.value = slug;
 }
 </script>
 

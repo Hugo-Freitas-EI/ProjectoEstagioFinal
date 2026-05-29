@@ -1,7 +1,10 @@
 <%- include('../partials/frontend-head', { pageTitle: postType.label }) %>
 <%- include('../partials/frontend-header', { currentPath: '/' + postType.name }) %>
 
-<div class="container" style="max-width:860px;padding:48px 24px">
+<% var _sb = typeof menuLocations !== 'undefined' && menuLocations ? menuLocations.sidebar : null; %>
+<div class="container" style="max-width:<%= _sb && _sb.length ? '1140px' : '860px' %>;padding:48px 24px">
+<div class="<%= _sb && _sb.length ? 'page-with-sidebar' : '' %>">
+<div>
 
   <div class="cpt-archive-header">
     <h1><%= postType.label %></h1>
@@ -81,6 +84,9 @@
     <% } %>
 
   <% } %>
+</div>
+<%- include('../partials/frontend-sidebar') %>
+</div>
 </div>
 
 <%- include('../partials/frontend-footer') %>

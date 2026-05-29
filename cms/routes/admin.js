@@ -22,18 +22,26 @@ router.get('/', async function(req, res) {
   const authorFilter = req.user.ownContentOnly ? ' AND post_author = ?' : '';
   const authorParam  = req.user.ownContentOnly ? [req.user.id] : [];
 
-  const [[pub]]   = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type='post' AND post_status='publish'${authorFilter}`, authorParam);
-  const [[draft]] = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type='post' AND post_status='draft'${authorFilter}`, authorParam);
-  const [[pages]] = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type='page' AND post_status='publish'${authorFilter}`, authorParam);
+  const [postPt, pagePt] = await Promise.all([
+    PostType.findByName('post'),
+    PostType.findByName('page')
+  ]);
+  const sysPostName = postPt.name;
+  const sysPageName = pagePt.name;
+
+  const [[pub]]   = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='publish'${authorFilter}`, [sysPostName, ...authorParam]);
+  const [[draft]] = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='draft'${authorFilter}`,   [sysPostName, ...authorParam]);
+  const [[pages]] = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='publish'${authorFilter}`, [sysPageName, ...authorParam]);
   const [[users]] = await db.query("SELECT COUNT(*) c FROM registers");
   const [recent]  = await db.query(
-    `SELECT ID,post_title,post_name,post_status,post_date FROM wp_posts WHERE post_type='post' AND post_status NOT IN ('auto-draft','revision')${authorFilter} ORDER BY post_date DESC LIMIT 6`,
-    authorParam
+    `SELECT ID,post_title,post_name,post_status,post_date FROM wp_posts WHERE post_type=? AND post_status NOT IN ('auto-draft','revision')${authorFilter} ORDER BY post_date DESC LIMIT 6`,
+    [sysPostName, ...authorParam]
   );
   res.render('admin/dashboard', {
     pageTitle: 'Dashboard', currentPage: 'dashboard',
     stats: { publishedPosts: pub.c, draftPosts: draft.c, publishedPages: pages.c, totalUsers: users.c },
-    recentPosts: recent
+    recentPosts: recent,
+    postPt, pagePt
   });
 });
 
@@ -95,6 +103,8 @@ router.post('/menus/:id/items/:itemId/indent',          requirePermission('menus
 router.post('/menus/:id/items/:itemId/outdent',         requirePermission('menus.write'), MenuController.outdentItem);
 router.post('/menus/:id/items/:itemId/delete',          requirePermission('menus.write'), MenuController.deleteItem);
 router.post('/menus/:id/locations',                     requirePermission('menus.write'), MenuController.saveLocations);
+router.post('/menus/locations/new',                     requirePermission('menus.write'), MenuController.createLocation);
+router.post('/menus/locations/:key/delete',             requirePermission('menus.write'), MenuController.deleteLocation);
 router.post('/menus/:id/items/:itemId',                 requirePermission('menus.write'), MenuController.updateItem);
 
 // ── CUSTOM FIELDS ─────────────────────────────────────────────────────────────
@@ -193,7 +203,7 @@ router.post('/users/:id/delete', requirePermission('users.write'), async functio
 // ── ROLES / FUNÇÕES ───────────────────────────────────────────────────────────
 router.get('/roles', requirePermission('roles.read'), async function(req, res) {
   const roles = await Role.findAll();
-  res.render('admin/roles/index', { pageTitle: 'Funções', currentPage: 'roles', roles, permissionGroups: Role.PERMISSION_GROUPS });
+  res.render('admin/roles/index', { pageTitle: 'Funções', currentPage: 'roles', roles, permissionGroups: await buildPermissionGroups() });
 });
 
 router.get('/roles/new', requirePermission('roles.write'), async function(req, res) {
@@ -201,7 +211,7 @@ router.get('/roles/new', requirePermission('roles.write'), async function(req, r
   res.render('admin/roles/form', {
     pageTitle: 'Nova Função', currentPage: 'roles',
     isEdit: false, role: null, error: null,
-    permissionGroups: Role.PERMISSION_GROUPS, customPostTypes
+    permissionGroups: await buildPermissionGroups(), customPostTypes
   });
 });
 
@@ -213,7 +223,7 @@ router.post('/roles', requirePermission('roles.write'), async function(req, res)
     return res.render('admin/roles/form', {
       pageTitle: 'Nova Função', currentPage: 'roles',
       isEdit: false, role: req.body, error: 'O label é obrigatório.',
-      permissionGroups: Role.PERMISSION_GROUPS, customPostTypes
+      permissionGroups: await buildPermissionGroups(), customPostTypes
     });
   }
   try {
@@ -224,7 +234,7 @@ router.post('/roles', requirePermission('roles.write'), async function(req, res)
     res.render('admin/roles/form', {
       pageTitle: 'Nova Função', currentPage: 'roles',
       isEdit: false, role: req.body, error: err.message,
-      permissionGroups: Role.PERMISSION_GROUPS, customPostTypes
+      permissionGroups: await buildPermissionGroups(), customPostTypes
     });
   }
 });
@@ -236,7 +246,7 @@ router.get('/roles/:name/edit', requirePermission('roles.write'), async function
   res.render('admin/roles/form', {
     pageTitle: 'Editar Função', currentPage: 'roles',
     isEdit: true, role, error: null,
-    permissionGroups: Role.PERMISSION_GROUPS, customPostTypes
+    permissionGroups: await buildPermissionGroups(), customPostTypes
   });
 });
 
@@ -270,6 +280,21 @@ router.post('/roles/:name/delete', requirePermission('roles.write'), async funct
   res.flash('success', 'Função eliminada. Utilizadores afetados passaram a Subscritor.');
   res.redirect('/admin/roles');
 });
+
+async function buildPermissionGroups() {
+  const [postPt, pagePt] = await Promise.all([
+    PostType.findByName('post'),
+    PostType.findByName('page')
+  ]);
+  return Role.PERMISSION_GROUPS.map(g => {
+    if (g.key !== 'content') return g;
+    return { ...g, items: g.items.map(item => {
+      if (item.key === 'posts') return { ...item, label: postPt.label };
+      if (item.key === 'pages') return { ...item, label: pagePt.label };
+      return item;
+    })};
+  });
+}
 
 function slugify(str) {
   return (str || '').toLowerCase()

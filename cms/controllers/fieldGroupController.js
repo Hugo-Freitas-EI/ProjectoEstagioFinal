@@ -21,17 +21,19 @@ const FieldGroupController = {
   },
 
   async create(req, res) {
-    const { name, post_type } = req.body;
-    if (!name?.trim() || !post_type?.trim()) {
+    const { name } = req.body;
+    const postType = [].concat(req.body.post_type || []).filter(Boolean).join(',');
+    if (!name?.trim() || !postType) {
       const allPostTypes = await PostType.findAllWithSystem();
       return res.render('admin/field-groups/form', {
         pageTitle: 'Novo Grupo de Campos', currentPage: 'field-groups',
-        group: req.body, isEdit: false, error: 'Nome e post type são obrigatórios.',
+        group: { name, post_types: [].concat(req.body.post_type || []).filter(Boolean) },
+        isEdit: false, error: 'Nome e pelo menos um post type são obrigatórios.',
         fieldTypes: FieldService.getFieldTypes(), allPostTypes
       });
     }
     try {
-      const id = await FieldService.createGroup({ name: name.trim(), postType: post_type.trim(), userId: req.user?.id });
+      const id = await FieldService.createGroup({ name: name.trim(), postType, userId: req.user?.id });
       res.flash('success', 'Grupo criado.');
       res.redirect('/admin/field-groups/' + id + '/edit');
     } catch (err) {
@@ -53,9 +55,10 @@ const FieldGroupController = {
   },
 
   async update(req, res) {
-    const { name, post_type } = req.body;
+    const { name } = req.body;
+    const postType = [].concat(req.body.post_type || []).filter(Boolean).join(',');
     try {
-      await FieldService.updateGroup(req.params.id, { name, postType: post_type, userId: req.user?.id });
+      await FieldService.updateGroup(req.params.id, { name, postType, userId: req.user?.id });
       res.flash('success', 'Grupo atualizado.');
       res.redirect('/admin/field-groups/' + req.params.id + '/edit');
     } catch (err) {

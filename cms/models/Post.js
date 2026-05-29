@@ -56,10 +56,19 @@ const Post = {
   async countByStatus(postType, authorId = null) {
     const extra = authorId ? ' AND post_author = ?' : '';
     const p     = authorId ? [postType, authorId] : [postType];
-    const [[all]]     = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status!='auto-draft'${extra}`, p);
+    const [[all]]     = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status NOT IN ('auto-draft','revision')${extra}`, p);
     const [[publish]] = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='publish'${extra}`, p);
     const [[draft]]   = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='draft'${extra}`, p);
-    return { all: all.c, publish: publish.c, draft: draft.c };
+    const [[pending]] = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='pending'${extra}`, p);
+    const [[future]]  = await db.query(`SELECT COUNT(*) c FROM wp_posts WHERE post_type=? AND post_status='future'${extra}`, p);
+    return { all: all.c, publish: publish.c, draft: draft.c, pending: pending.c, future: future.c };
+  },
+
+  async publishDue() {
+    const [result] = await db.query(
+      "UPDATE wp_posts SET post_status='publish', post_modified=NOW() WHERE post_status='future' AND post_date <= NOW()"
+    );
+    return result.affectedRows;
   },
 
   async getRevisions(postId) {

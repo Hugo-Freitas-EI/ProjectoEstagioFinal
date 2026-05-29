@@ -4,6 +4,42 @@ const PostType        = require('../models/PostType');
 const Post            = require('../models/Post');
 const Term            = require('../models/Term');
 
+function getPermBase(req, postType) {
+  if (req.basePostTypePermBase) return req.basePostTypePermBase;
+  if (postType === 'post') return 'posts';
+  if (postType === 'page') return 'pages';
+  return `cpt.${postType}`;
+}
+
+function canPublish(user, permBase) {
+  if (user.role === 'admin') return true;
+  return (user.permissions || []).includes(`${permBase}.write`);
+}
+
+function resolveStatus(action, dropdownStatus, userCanPublish, postDate) {
+  if (action === 'publish') {
+    if (!userCanPublish) return 'pending';
+    const date = postDate ? new Date(postDate) : null;
+    if (date && date > new Date()) return 'future';
+    return 'publish';
+  }
+  if (action === 'save') {
+    const allowed = userCanPublish
+      ? ['draft', 'pending', 'publish', 'private', 'future']
+      : ['draft', 'pending'];
+    return allowed.includes(dropdownStatus) ? dropdownStatus : 'draft';
+  }
+  return 'draft';
+}
+
+function statusFlash(status) {
+  if (status === 'publish')  return 'Publicado!';
+  if (status === 'future')   return 'Publicação agendada.';
+  if (status === 'pending')  return 'Submetido para aprovação.';
+  if (status === 'private')  return 'Guardado como privado.';
+  return 'Estado guardado.';
+}
+
 function extractMeta(body) {
   const meta = {};
   for (const [key, val] of Object.entries(body)) {
@@ -65,7 +101,8 @@ const PostController = {
       currentPage: postType,
       post: null, postType, isEdit: false, error: null,
       formAction: `/admin/cpt/${postType}`,
-      allTerms, selectedTermIds: [], fieldGroups, revisions: []
+      allTerms, selectedTermIds: [], fieldGroups, revisions: [],
+      userCanPublish: canPublish(req.user, getPermBase(req, postType))
     });
   },
 
@@ -73,7 +110,8 @@ const PostController = {
     const postType = req.basePostType || 'post';
     const label    = await getPostTypeLabel(postType);
     const { post_title, post_content, post_excerpt, post_name, post_date, action } = req.body;
-    const status   = action === 'publish' ? 'publish' : 'draft';
+    const userCanPublish = canPublish(req.user, getPermBase(req, postType));
+    const status = resolveStatus(action, req.body.post_status, userCanPublish, post_date);
     const termIds  = [].concat(req.body.term_ids || []);
     const meta     = extractMeta(req.body);
 
@@ -85,7 +123,8 @@ const PostController = {
         post: req.body, postType, isEdit: false,
         error: 'O título é obrigatório.',
         formAction: `/admin/cpt/${postType}`,
-        allTerms, selectedTermIds: termIds, fieldGroups, revisions: []
+        allTerms, selectedTermIds: termIds, fieldGroups, revisions: [],
+        userCanPublish
       });
     }
 
@@ -95,7 +134,8 @@ const PostController = {
         excerpt: post_excerpt || '', slug: post_name || '',
         status, postType, date: post_date, termIds, meta
       });
-      res.flash('success', status === 'publish' ? 'Publicado!' : 'Rascunho guardado.');
+      const flash = statusFlash(status);
+      res.flash('success', flash);
       res.redirect(`/admin/cpt/${postType}/${id}/edit`);
     } catch (err) {
       console.error(err);
@@ -133,9 +173,9 @@ const PostController = {
 
     let viewUrl = null;
     if (post.post_status === 'publish' && post.post_name) {
-      if (post.post_type === 'post')      viewUrl = `/post/${post.post_name}`;
-      else if (post.post_type === 'page') viewUrl = `/page/${post.post_name}`;
-      else                                viewUrl = `/${post.post_type}/${post.post_name}`;
+      const ptData = await PostType.findByName(post.post_type);
+      const prefix = ptData?.prefix || post.post_type;
+      viewUrl = `/${prefix}/${post.post_name}`;
     }
 
     res.render('admin/post-editor', {
@@ -145,7 +185,8 @@ const PostController = {
       isEdit: true, error: null,
       formAction: `/admin/cpt/${postType}/${post.ID}`,
       allTerms, selectedTermIds, fieldGroups, revisions,
-      viewUrl
+      viewUrl,
+      userCanPublish: canPublish(req.user, getPermBase(req, postType))
     });
   },
 
@@ -162,7 +203,8 @@ const PostController = {
     }
 
     const { post_title, post_content, post_excerpt, post_name, post_date, action } = req.body;
-    const status  = action === 'publish' ? 'publish' : 'draft';
+    const userCanPublish = canPublish(req.user, getPermBase(req, postType));
+    const status = resolveStatus(action, req.body.post_status, userCanPublish, post_date);
     const termIds = [].concat(req.body.term_ids || []);
     const meta    = extractMeta(req.body);
 
@@ -175,7 +217,7 @@ const PostController = {
         status, date: post_date, termIds, meta,
         authorId: req.user.id
       });
-      res.flash('success', status === 'publish' ? 'Publicado!' : 'Rascunho guardado.');
+      res.flash('success', statusFlash(status));
       res.redirect(`/admin/cpt/${postType}/${id}/edit`);
     } catch (err) {
       console.error(err);

@@ -14,6 +14,14 @@
         class="btn btn-sm <%= status === 'draft' ? 'btn-primary' : 'btn-outline-secondary' %>">
         Rascunhos <span class="ms-1" style="font-family:'DM Mono',monospace;font-size:10px">(<%= counts.draft %>)</span>
       </a>
+      <a href="/admin/cpt/<%= postType %>?status=pending&search=<%= search %>"
+        class="btn btn-sm <%= status === 'pending' ? 'btn-warning' : 'btn-outline-secondary' %>">
+        Pendentes <span class="ms-1" style="font-family:'DM Mono',monospace;font-size:10px">(<%= counts.pending %>)</span>
+      </a>
+      <a href="/admin/cpt/<%= postType %>?status=future&search=<%= search %>"
+        class="btn btn-sm <%= status === 'future' ? 'btn-info' : 'btn-outline-secondary' %>">
+        Agendados <span class="ms-1" style="font-family:'DM Mono',monospace;font-size:10px">(<%= counts.future %>)</span>
+      </a>
     </div>
     <a href="/admin/cpt/<%= postType %>/new" class="btn btn-sm btn-primary">
       <i class="bi bi-plus-lg me-1"></i> Novo <%= pageTitle.replace(/s$/, '' ) %>
@@ -70,9 +78,17 @@
                     </div>
                   </td>
                   <td>
-                    <span class="badge <%= p.post_status === 'publish' ? 'bg-success' : 'bg-warning' %>">
-                      <%= p.post_status==='publish' ? 'Publicado' : 'Rascunho' %>
-                    </span>
+                    <%
+                      var badgeClass = p.post_status === 'publish' ? 'bg-success'
+                                     : p.post_status === 'pending' ? 'bg-warning text-dark'
+                                     : p.post_status === 'future'  ? 'bg-info text-dark'
+                                     : 'bg-secondary';
+                      var badgeLabel = p.post_status === 'publish' ? 'Publicado'
+                                     : p.post_status === 'pending' ? 'Pendente'
+                                     : p.post_status === 'future'  ? 'Agendado'
+                                     : 'Rascunho';
+                    %>
+                    <span class="badge <%= badgeClass %>"><%= badgeLabel %></span>
                   </td>
                   <td class="text-muted" style="font-size:12px">
                     <%= p.username || '—' %>

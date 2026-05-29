@@ -1,12 +1,14 @@
 <%- include('../partials/admin-layout', { pageTitle: 'Dashboard', currentPage: 'dashboard' }) %>
 
+<% var _postPt = typeof postPt !== 'undefined' ? postPt : (typeof systemPostTypes !== 'undefined' ? systemPostTypes[0] : { name: 'post', label: 'Posts' }); %>
+<% var _pagePt = typeof pagePt !== 'undefined' ? pagePt : (typeof systemPostTypes !== 'undefined' ? systemPostTypes[1] : { name: 'page', label: 'Páginas' }); %>
 <div class="row g-3 mb-4">
   <div class="col-sm-6 col-xl-3">
     <div class="card">
       <div class="card-body d-flex align-items-center gap-3">
         <div class="stat-icon purple"><i class="bi bi-pencil-square"></i></div>
         <div>
-          <div class="stat-label">Posts Publicados</div>
+          <div class="stat-label"><%= _postPt.label %> Publicados</div>
           <div class="stat-value"><%= stats.publishedPosts %></div>
           <div class="stat-sub"><%= stats.draftPosts %> rascunhos</div>
         </div>
@@ -18,7 +20,7 @@
       <div class="card-body d-flex align-items-center gap-3">
         <div class="stat-icon green"><i class="bi bi-file-text"></i></div>
         <div>
-          <div class="stat-label">Páginas</div>
+          <div class="stat-label"><%= _pagePt.label %></div>
           <div class="stat-value"><%= stats.publishedPages %></div>
           <div class="stat-sub">publicadas</div>
         </div>
@@ -47,15 +49,15 @@
   <div class="col-lg-7">
     <div class="card h-100">
       <div class="card-header d-flex align-items-center justify-content-between">
-        <span style="font-family:'DM Serif Display',serif;font-size:16px">Posts Recentes</span>
-        <a href="/admin/cpt/post" class="btn btn-sm btn-outline-secondary">Ver todos</a>
+        <span style="font-family:'DM Serif Display',serif;font-size:16px"><%= _postPt.label %> Recentes</span>
+        <a href="/admin/cpt/<%= _postPt.name %>" class="btn btn-sm btn-outline-secondary">Ver todos</a>
       </div>
       <div class="card-body p-0">
         <% if (recentPosts.length === 0) { %>
           <div class="text-center py-5 text-muted">
             <i class="bi bi-pencil fs-2 d-block mb-2 opacity-50"></i>
-            <p class="mb-3">Sem posts ainda</p>
-            <a href="/admin/cpt/posts/new" class="btn btn-sm btn-primary">Criar primeiro post</a>
+            <p class="mb-3">Sem <%= _postPt.label.toLowerCase() %> ainda</p>
+            <a href="/admin/cpt/<%= _postPt.name %>/new" class="btn btn-sm btn-primary">Criar primeiro</a>
           </div>
         <% } else { %>
           <ul class="list-group list-group-flush">
@@ -64,7 +66,7 @@
                 <div class="d-flex align-items-center gap-2 text-truncate">
                   <span class="rounded-circle flex-shrink-0"
                     style="width:7px;height:7px;background:<%= p.post_status==='publish' ? 'var(--success)' : 'var(--warning)' %>;display:inline-block"></span>
-                  <a href="/admin/cpt/post/<%= p.ID %>/edit" class="text-truncate" style="color:var(--accent2);font-size:13px">
+                  <a href="/admin/cpt/<%= _postPt.name %>/<%= p.ID %>/edit" class="text-truncate" style="color:var(--accent2);font-size:13px">
                     <%= p.post_title || '(sem título)' %>
                   </a>
                 </div>
@@ -90,13 +92,13 @@
           function hasDash(k) { return user.role === 'admin' || perms.includes(k+'.read') || perms.includes(k+'.write'); }
         %>
         <% if (hasDash('posts')) { %>
-        <a href="/admin/cpt/post/new" class="quick-action">
-          <i class="bi bi-pencil-square"></i> Escrever novo post
+        <a href="/admin/cpt/<%= _postPt.name %>/new" class="quick-action">
+          <i class="bi bi-pencil-square"></i> Novo <%= _postPt.label %>
         </a>
         <% } %>
         <% if (hasDash('pages')) { %>
-        <a href="/admin/cpt/page/new" class="quick-action">
-          <i class="bi bi-file-earmark-plus"></i> Criar nova página
+        <a href="/admin/cpt/<%= _pagePt.name %>/new" class="quick-action">
+          <i class="bi bi-file-earmark-plus"></i> Nova <%= _pagePt.label %>
         </a>
         <% } %>
         <% if (hasDash('media')) { %>

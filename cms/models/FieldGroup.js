@@ -4,21 +4,24 @@ const FieldGroup = {
 
   async findAll() {
     const [rows] = await db.query(
-      'SELECT id, name, post_type FROM field_groups ORDER BY post_type, name'
+      'SELECT id, name, post_type FROM field_groups ORDER BY name'
     );
+    rows.forEach(r => { r.post_types = r.post_type ? r.post_type.split(',') : []; });
     return rows;
   },
 
   async findById(id) {
     const [[row]] = await db.query('SELECT * FROM field_groups WHERE id=?', [id]);
+    if (row) row.post_types = row.post_type ? row.post_type.split(',') : [];
     return row || null;
   },
 
   async findByPostType(postType) {
     const [rows] = await db.query(
-      'SELECT * FROM field_groups WHERE post_type=? ORDER BY id',
+      'SELECT * FROM field_groups WHERE FIND_IN_SET(?, post_type) ORDER BY id',
       [postType]
     );
+    rows.forEach(r => { r.post_types = r.post_type ? r.post_type.split(',') : []; });
     return rows;
   },
 

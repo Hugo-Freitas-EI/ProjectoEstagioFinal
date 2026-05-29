@@ -7,6 +7,7 @@ const flash        = require('./middleware/flash');
 const sidebarData  = require('./middleware/sidebarData');
 const SiteSetting  = require('./models/SiteSetting');
 const Role         = require('./models/Role');
+const Post         = require('./models/Post');
 
 const app = express();
 
@@ -99,10 +100,22 @@ function startServer() {
   });
 }
 
+function startScheduler() {
+  setInterval(async function () {
+    try {
+      const n = await Post.publishDue();
+      if (n > 0) console.log(`Scheduler: ${n} post(s) publicado(s) automaticamente.`);
+    } catch (err) {
+      console.error('Scheduler erro:', err.message);
+    }
+  }, 60 * 1000);
+}
+
 Role.migrate()
-  .then(startServer)
+  .then(() => { startServer(); startScheduler(); })
   .catch(err => {
     console.error('Erro na migração de roles:', err);
     console.warn('A arrancar sem migrações de roles porque a BD não está acessível agora.');
     startServer();
+    startScheduler();
   });

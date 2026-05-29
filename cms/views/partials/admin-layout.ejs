@@ -45,14 +45,16 @@
         %>
         <% if (has('posts') || has('pages') || has('media') || hasCpt) { %>
         <div class="nav-section">Conteúdo</div>
+        <% var sysPost = (typeof systemPostTypes !== 'undefined' && systemPostTypes[0]) ? systemPostTypes[0] : { name: 'post', label: 'Posts' }; %>
+        <% var sysPage = (typeof systemPostTypes !== 'undefined' && systemPostTypes[1]) ? systemPostTypes[1] : { name: 'page', label: 'Páginas' }; %>
         <% if (has('posts')) { %>
-        <a href="/admin/cpt/post" title="Posts" class="nav-item <%= currentPage === 'post' ? 'active' : '' %>">
-          <i class="bi bi-pencil-square"></i><span>Posts</span>
+        <a href="/admin/cpt/<%= sysPost.name %>" title="<%= sysPost.label %>" class="nav-item <%= currentPage === sysPost.name ? 'active' : '' %>">
+          <i class="bi bi-pencil-square"></i><span><%= sysPost.label %></span>
         </a>
         <% } %>
         <% if (has('pages')) { %>
-        <a href="/admin/cpt/page" title="Páginas" class="nav-item <%= currentPage === 'page' ? 'active' : '' %>">
-          <i class="bi bi-file-text"></i><span>Páginas</span>
+        <a href="/admin/cpt/<%= sysPage.name %>" title="<%= sysPage.label %>" class="nav-item <%= currentPage === sysPage.name ? 'active' : '' %>">
+          <i class="bi bi-file-text"></i><span><%= sysPage.label %></span>
         </a>
         <% } %>
         <% if (has('media')) { %>

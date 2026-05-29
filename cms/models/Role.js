@@ -25,7 +25,11 @@ const PERMISSION_GROUPS = [
 ];
 
 const ALL_PERMISSION_KEYS = PERMISSION_GROUPS.flatMap(g =>
-  g.items.flatMap(i => [`${i.key}.read`, `${i.key}.write`])
+  g.items.flatMap(i => {
+    const keys = [`${i.key}.read`, `${i.key}.write`];
+    if (g.key === 'content') keys.push(`${i.key}.write_pending`);
+    return keys;
+  })
 );
 
 // Mapeamento de permissões antigas (sem ponto) para o novo formato

@@ -9,7 +9,7 @@
     <div class="card mb-3">
       <div class="card-header">Grupo de Campos</div>
       <div class="card-body">
-        <form method="POST" action="/admin/field-groups<%= isEdit ? '/' + group.id : '' %>" data-unsaved>
+        <form method="POST" action="/admin/field-groups<%= isEdit ? '/' + group.id : '' %>" data-unsaved id="fg-form">
           <div class="mb-3">
             <label class="form-label">Nome do Grupo *</label>
             <input type="text" name="name" class="form-control"
@@ -17,21 +17,29 @@
               placeholder="Ex: Detalhes do Produto" required>
           </div>
           <div class="mb-4">
-            <label class="form-label">Post Type *</label>
-            <select name="post_type" class="form-select" required>
-              <option value="">— selecionar tipo —</option>
-              <% if (typeof allPostTypes !== 'undefined') { %>
+            <label class="form-label">Post Types *</label>
+            <% var selectedTypes = (group && group.post_types) ? group.post_types : []; %>
+            <div class="border rounded" style="padding:6px 10px;max-height:180px;overflow-y:auto">
+              <% if (typeof allPostTypes !== 'undefined' && allPostTypes.length) { %>
                 <% allPostTypes.forEach(function(pt) { %>
-                  <option value="<%= pt.name %>"
-                    <%= (group && group.post_type === pt.name) ? 'selected' : '' %>>
-                    <%= pt.label %><% if (pt.system) { %> (sistema)<% } %>
-                  </option>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input post-type-check"
+                      type="checkbox"
+                      name="post_type"
+                      value="<%= pt.name %>"
+                      id="pt_<%= pt.name %>"
+                      <%= selectedTypes.includes(pt.name) ? 'checked' : '' %>
+                    >
+                    <label class="form-check-label" for="pt_<%= pt.name %>">
+                      <%= pt.label %><% if (pt.system) { %> <span class="text-muted" style="font-size:11px">(sistema)</span><% } %>
+                    </label>
+                  </div>
                 <% }) %>
               <% } %>
-            </select>
+            </div>
             <div class="form-text">
-              Não vês o tipo?
-              <a href="/admin/post-types/new" target="_blank">Criar novo tipo de conteúdo</a>
+              Não vês o tipo? <a href="/admin/post-types/new" target="_blank">Criar novo tipo de conteúdo</a>
             </div>
           </div>
           <div class="d-flex gap-2">
@@ -250,6 +258,24 @@ document.addEventListener('click', function(e) {
 // Fechar com Escape
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape' && activePanel) closeEditPanel(activePanel);
+});
+
+// Validar pelo menos um post type selecionado
+document.getElementById('fg-form').addEventListener('submit', function(e) {
+  var checked = this.querySelectorAll('.post-type-check:checked');
+  if (!checked.length) {
+    e.preventDefault();
+    var wrap = this.querySelector('.border.rounded');
+    wrap.style.borderColor = 'var(--bs-danger)';
+    wrap.insertAdjacentHTML('afterend',
+      '<div class="text-danger" style="font-size:.875em;margin-top:.25rem" id="pt-error">Seleciona pelo menos um post type.</div>'
+    );
+    setTimeout(function() {
+      var err = document.getElementById('pt-error');
+      if (err) err.remove();
+      wrap.style.borderColor = '';
+    }, 3000);
+  }
 });
 </script>
 

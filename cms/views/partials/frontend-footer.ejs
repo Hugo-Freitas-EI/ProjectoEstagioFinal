@@ -1,7 +1,27 @@
 <footer>
-  <strong style="color:#ccc"><%= siteName %></strong>
-  &nbsp;·&nbsp;
-  Feito com <a href="/admin/login">NodeCMS</a>
+  <% var footerMenu = typeof menuLocations !== 'undefined' && menuLocations ? menuLocations.footer : null; %>
+  <% if (footerMenu && footerMenu.length) { %>
+    <nav class="footer-nav" aria-label="Menu de rodapé">
+      <ul>
+        <% footerMenu.forEach(function(item) { %>
+          <li><a href="<%= item.link %>"><%= item.nome %></a>
+            <% if (item.children && item.children.length) { %>
+              <ul>
+                <% item.children.forEach(function(child) { %>
+                  <li><a href="<%= child.link %>"><%= child.nome %></a></li>
+                <% }) %>
+              </ul>
+            <% } %>
+          </li>
+        <% }) %>
+      </ul>
+    </nav>
+  <% } %>
+  <div class="footer-copy">
+    <strong><%= siteName %></strong>
+    &nbsp;·&nbsp;
+    Feito com <a href="/admin/login">NodeCMS</a>
+  </div>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/theme.js"></script>

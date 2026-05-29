@@ -3,11 +3,43 @@ const PostType      = require('../models/PostType');
 const SiteSetting   = require('../models/SiteSetting');
 const db = require('../db');
 
+// ── helpers ─────────────────────────────────────────────────────────────────
+
+function makeKey(label) {
+  return (label || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+}
+
+async function getLocations() {
+  const custom = JSON.parse(await SiteSetting.get('menu_locations_custom') || '[]');
+  return [{ key: 'header', label: 'Header', system: true }, ...custom];
+}
+
+async function getLocationAssignments(locations) {
+  const out = {};
+  for (const loc of locations) {
+    out[loc.key] = await SiteSetting.get('menu_location_' + loc.key);
+  }
+  return out;
+}
+
+// ── controller ───────────────────────────────────────────────────────────────
+
 const MenuController = {
   async list(req, res) {
-    const menus = await MenuService.listMenus();
+    const [menus, locations] = await Promise.all([
+      MenuService.listMenus(),
+      getLocations()
+    ]);
+    const assignments = await getLocationAssignments(locations);
+    const menuMap = Object.fromEntries(menus.map(m => [String(m.id), m]));
+    const locationsWithMenu = locations.map(loc => ({
+      ...loc,
+      assignedMenu: menuMap[String(assignments[loc.key])] || null
+    }));
     res.render('admin/menus/index', {
-      pageTitle: 'Menus', currentPage: 'menus', menus
+      pageTitle: 'Menus', currentPage: 'menus', menus, locationsWithMenu
     });
   },
 
@@ -42,11 +74,18 @@ const MenuController = {
     const data = await MenuService.getMenuWithItems(req.params.id);
     if (!data) return res.redirect('/admin/menus');
 
+    const [postPt, pagePt] = await Promise.all([
+      PostType.findByName('post'),
+      PostType.findByName('page')
+    ]);
+
     const [pages] = await db.query(
-      "SELECT ID as id, post_title as nome, post_name as slug FROM wp_posts WHERE post_type='page' AND post_status='publish' ORDER BY post_title"
+      'SELECT ID as id, post_title as nome, post_name as slug FROM wp_posts WHERE post_type=? AND post_status=\'publish\' ORDER BY post_title',
+      [pagePt.name]
     );
     const [posts] = await db.query(
-      "SELECT ID as id, post_title as nome, post_name as slug FROM wp_posts WHERE post_type='post' AND post_status='publish' ORDER BY post_title LIMIT 50"
+      'SELECT ID as id, post_title as nome, post_name as slug FROM wp_posts WHERE post_type=? AND post_status=\'publish\' ORDER BY post_title LIMIT 50',
+      [postPt.name]
     );
     const [categories] = await db.query('SELECT id, name as nome, slug FROM categories ORDER BY name');
     const allMenus = await MenuService.listMenus();
@@ -60,8 +99,15 @@ const MenuController = {
       return { name: cpt.name, label: cpt.label, posts: cptPosts };
     }));
 
-    const headerMenuId = await SiteSetting.get('menu_location_header');
-    const isHeaderMenu = String(headerMenuId) === String(req.params.id);
+    const locations    = await getLocations();
+    const assignments  = await getLocationAssignments(locations);
+    const menuMap      = Object.fromEntries(allMenus.map(m => [String(m.id), m]));
+    const locationsWithMenu = locations.map(loc => ({
+      ...loc,
+      assignedMenuId:   assignments[loc.key] || null,
+      assignedMenu:     menuMap[String(assignments[loc.key])] || null,
+      isThisMenu:       String(assignments[loc.key]) === String(req.params.id)
+    }));
 
     res.render('admin/menus/edit', {
       pageTitle: 'Editar Menu — ' + data.nome,
@@ -74,7 +120,9 @@ const MenuController = {
       categories,
       allMenus,
       cptData,
-      isHeaderMenu
+      locationsWithMenu,
+      postPt,
+      pagePt
     });
   },
 
@@ -113,16 +161,18 @@ const MenuController = {
           await MenuService.addItem(menuId, { nome: custom_label.trim(), link: custom_url.trim() });
         }
       } else if (type === 'pages') {
+        const pagePt = await PostType.findByName('page');
         const ids = [].concat(req.body.page_ids || []);
         for (const id of ids) {
           const [[p]] = await db.query("SELECT post_title, post_name FROM wp_posts WHERE ID=?", [id]);
-          if (p) await MenuService.addItem(menuId, { nome: p.post_title, link: '/page/' + p.post_name });
+          if (p) await MenuService.addItem(menuId, { nome: p.post_title, link: '/' + pagePt.prefix + '/' + p.post_name });
         }
       } else if (type === 'posts') {
+        const postPt = await PostType.findByName('post');
         const ids = [].concat(req.body.post_ids || []);
         for (const id of ids) {
           const [[p]] = await db.query("SELECT post_title, post_name FROM wp_posts WHERE ID=?", [id]);
-          if (p) await MenuService.addItem(menuId, { nome: p.post_title, link: '/post/' + p.post_name });
+          if (p) await MenuService.addItem(menuId, { nome: p.post_title, link: '/' + postPt.prefix + '/' + p.post_name });
         }
       } else if (type === 'cpt') {
         const { cpt_name, cpt_ids } = req.body;
@@ -166,9 +216,7 @@ const MenuController = {
   async reorder(req, res) {
     try {
       const items = req.body.items;
-      if (Array.isArray(items)) {
-        await MenuService.reorderItems(items);
-      }
+      if (Array.isArray(items)) await MenuService.reorderItems(items);
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ ok: false, error: err.message });
@@ -198,18 +246,58 @@ const MenuController = {
   },
 
   async saveLocations(req, res) {
-    const menuId = req.params.id;
-    const isHeader = req.body.location_header === '1';
-    if (isHeader) {
-      await SiteSetting.set('menu_location_header', menuId);
-    } else {
-      const current = await SiteSetting.get('menu_location_header');
-      if (String(current) === String(menuId)) {
-        await SiteSetting.set('menu_location_header', null);
+    const menuId   = req.params.id;
+    const locations = await getLocations();
+    for (const loc of locations) {
+      const checked = req.body['location_' + loc.key] === '1';
+      if (checked) {
+        await SiteSetting.set('menu_location_' + loc.key, menuId);
+      } else {
+        const current = await SiteSetting.get('menu_location_' + loc.key);
+        if (String(current) === String(menuId)) {
+          await SiteSetting.set('menu_location_' + loc.key, null);
+        }
       }
     }
-    res.flash('success', 'Localização guardada.');
+    res.flash('success', 'Localizações guardadas.');
     res.redirect('/admin/menus/' + menuId + '/edit');
+  },
+
+  async createLocation(req, res) {
+    const { label } = req.body;
+    if (!label?.trim()) {
+      res.flash('error', 'O nome da localização é obrigatório.');
+      return res.redirect('/admin/menus');
+    }
+    const key = makeKey(label);
+    if (!key) {
+      res.flash('error', 'Nome inválido.');
+      return res.redirect('/admin/menus');
+    }
+    const existing = JSON.parse(await SiteSetting.get('menu_locations_custom') || '[]');
+    const allKeys  = ['header', ...existing.map(l => l.key)];
+    if (allKeys.includes(key)) {
+      res.flash('error', 'Já existe uma localização com esse nome.');
+      return res.redirect('/admin/menus');
+    }
+    existing.push({ key, label: label.trim() });
+    await SiteSetting.set('menu_locations_custom', JSON.stringify(existing));
+    res.flash('success', 'Localização "' + label.trim() + '" criada.');
+    res.redirect('/admin/menus');
+  },
+
+  async deleteLocation(req, res) {
+    const key = req.params.key;
+    if (key === 'header') {
+      res.flash('error', 'A localização Header é de sistema e não pode ser removida.');
+      return res.redirect('/admin/menus');
+    }
+    const existing = JSON.parse(await SiteSetting.get('menu_locations_custom') || '[]');
+    const updated  = existing.filter(l => l.key !== key);
+    await SiteSetting.set('menu_locations_custom', JSON.stringify(updated));
+    await SiteSetting.set('menu_location_' + key, null);
+    res.flash('success', 'Localização removida.');
+    res.redirect('/admin/menus');
   },
 
   async outdentItem(req, res) {

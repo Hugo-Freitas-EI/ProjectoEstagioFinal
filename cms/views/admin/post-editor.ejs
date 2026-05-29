@@ -331,11 +331,17 @@
                 <i class="bi bi-chevron-up text-muted card-toggle" style="cursor: pointer;"></i>
               </div>
               <div class="card-body d-flex flex-column gap-2">
-                <button type="submit" name="action" value="publish" class="btn btn-success">
-                  <i class="bi bi-check-lg me-1"></i> Publicar
-                </button>
-                <button type="submit" name="action" value="draft" class="btn btn-outline-secondary">
-                  <i class="bi bi-save me-1"></i> Guardar Rascunho
+                <% if (typeof userCanPublish === 'undefined' || userCanPublish) { %>
+                  <button type="submit" name="action" value="publish" class="btn btn-success" id="btn-publish">
+                    <i class="bi bi-check-lg me-1" id="btn-publish-icon"></i><span id="btn-publish-label"> Publicar</span>
+                  </button>
+                <% } else { %>
+                  <button type="submit" name="action" value="publish" class="btn btn-warning">
+                    <i class="bi bi-send me-1"></i> Submeter para Revisão
+                  </button>
+                <% } %>
+                <button type="submit" name="action" value="save" class="btn btn-outline-secondary">
+                  <i class="bi bi-save me-1"></i> Guardar estado
                 </button>
                 <% if (typeof revisions !=='undefined' && revisions.length> 0) { %>
                   <div class="mt-3 pt-3 border-top d-flex align-items-center gap-2" style="font-size: 14px;">
@@ -373,17 +379,19 @@
                 <div class="mb-3">
                   <label class="form-label">Estado</label>
                   <select name="post_status" class="form-select">
-                    <option value="draft" <%=!post || post.post_status==='draft' ? 'selected' : '' %>>Rascunho</option>
-                    <option value="publish" <%=post && post.post_status==='publish' ? 'selected' : '' %>>Publicado
-                    </option>
-                    <option value="private" <%=post && post.post_status==='private' ? 'selected' : '' %>>Privado
-                    </option>
+                    <option value="draft"    <%=!post || post.post_status==='draft'    ? 'selected' : '' %>>Rascunho</option>
+                    <option value="pending"  <%=post && post.post_status==='pending'   ? 'selected' : '' %>>Pendente de aprovação</option>
+                    <% if (typeof userCanPublish === 'undefined' || userCanPublish) { %>
+                    <option value="publish"  <%=post && post.post_status==='publish'   ? 'selected' : '' %>>Publicado</option>
+                    <option value="future"   <%=post && post.post_status==='future'    ? 'selected' : '' %>>Agendado</option>
+                    <option value="private"  <%=post && post.post_status==='private'   ? 'selected' : '' %>>Privado</option>
+                    <% } %>
                   </select>
                 </div>
                 <div>
                   <label class="form-label">Data</label>
-                  <input type="date" name="post_date" class="form-control"
-                    value="<%= post && post.post_date ? new Date(post.post_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0] %>">
+                  <input type="datetime-local" name="post_date" class="form-control"
+                    value="<%= (function(){ var d = post && post.post_date ? new Date(post.post_date) : new Date(); var p = function(n){ return String(n).padStart(2,'0'); }; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); })() %>">
                 </div>
               </div>
             </div>
@@ -761,6 +769,25 @@
           `;
           document.head.appendChild(style);
         }
+      </script>
+
+      <script>
+      (function () {
+        var btnLabel = document.getElementById('btn-publish-label');
+        var btnIcon  = document.getElementById('btn-publish-icon');
+        var dateInput = document.querySelector('input[name="post_date"]');
+        if (!btnLabel || !dateInput) return;
+
+        function updateBtn() {
+          var val = dateInput.value;
+          var isFuture = val && new Date(val) > new Date();
+          btnLabel.textContent = isFuture ? ' Agendar' : ' Publicar';
+          btnIcon.className    = isFuture ? 'bi bi-calendar-check me-1' : 'bi bi-check-lg me-1';
+        }
+
+        dateInput.addEventListener('change', updateBtn);
+        updateBtn();
+      }());
       </script>
 
       <%- include('../partials/admin-layout-end') %>

@@ -1,0 +1,27 @@
+<aside class="site-sidebar">
+  <% var _sidebarMenu = typeof sidebarMenu !== 'undefined' ? sidebarMenu
+       : (typeof menuLocations !== 'undefined' && menuLocations ? menuLocations.sidebar : null); %>
+  <% if (_sidebarMenu && _sidebarMenu.length) { %>
+    <nav class="sidebar-widget" aria-label="Menu lateral">
+      <ul class="sidebar-nav-menu">
+        <%
+        function renderSidebarItem(item, depth) {
+          var html = '<li class="sidebar-nav-item' + (depth > 0 ? ' sidebar-nav-child' : '') + '">';
+          html += '<a href="' + (item.link || '#').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') + '">'
+               +  String(item.nome || '').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</a>';
+          if (item.children && item.children.length) {
+            html += '<ul class="sidebar-nav-sub">';
+            item.children.forEach(function(child) { html += renderSidebarItem(child, depth + 1); });
+            html += '</ul>';
+          }
+          html += '</li>';
+          return html;
+        }
+        %>
+        <% _sidebarMenu.forEach(function(item) { %>
+          <%- renderSidebarItem(item, 0) %>
+        <% }) %>
+      </ul>
+    </nav>
+  <% } %>
+</aside>

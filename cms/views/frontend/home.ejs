@@ -1,7 +1,10 @@
 <%- include('../partials/frontend-head', { pageTitle: null }) %>
 <%- include('../partials/frontend-header', { currentPath: '/' }) %>
 
-<div class="container" style="max-width:860px;padding:48px 24px">
+<% var _sb = typeof menuLocations !== 'undefined' && menuLocations ? menuLocations.sidebar : null; %>
+<div class="container" style="max-width:<%= _sb && _sb.length ? '1140px' : '860px' %>;padding:48px 24px">
+<div class="<%= _sb && _sb.length ? 'page-with-sidebar' : '' %>">
+<div>
 
   <% if (posts.length === 0) { %>
     <div class="empty-state">
@@ -73,6 +76,9 @@
     <% } %>
 
   <% } %>
+</div>
+<%- include('../partials/frontend-sidebar') %>
+</div>
 </div>
 
 <%- include('../partials/frontend-footer') %>

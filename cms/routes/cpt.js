@@ -15,17 +15,23 @@ router.use(requireAuth, async (req, res, next) => {
   const name = req.params.postType;
   const pt   = await PostType.findByName(name);
   if (!pt) return res.status(404).render('frontend/404', { pageTitle: '404', navPages: [] });
-  req.basePostType = name;
+  req.basePostType     = pt.name;
+  const sysKey         = pt.sysKey || null;
+  req.basePostTypePermBase = sysKey === 'post' ? 'posts'
+    : sysKey === 'page' ? 'pages'
+    : `cpt.${pt.name}`;
 
   if (req.user.role === 'admin') return next();
 
-  const permBase = name === 'post' ? 'posts' : name === 'page' ? 'pages' : `cpt.${name}`;
+  const permBase = req.basePostTypePermBase;
   const level    = req.method === 'GET' ? 'read' : 'write';
   const needed   = `${permBase}.${level}`;
   const perms    = req.user.permissions || [];
 
   if (perms.includes(needed)) return next();
   if (level === 'read' && perms.includes(`${permBase}.write`)) return next();
+  if (level === 'read' && perms.includes(`${permBase}.write_pending`)) return next();
+  if (level === 'write' && perms.includes(`${permBase}.write_pending`)) return next();
   return DENY(res);
 });
 

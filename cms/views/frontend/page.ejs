@@ -1,7 +1,10 @@
 <%- include('../partials/frontend-head', { pageTitle: page.post_title }) %>
 <%- include('../partials/frontend-header', { currentPath: '/page/' + page.post_name }) %>
 
-<div class="container" style="max-width:680px;padding:48px 24px">
+<% var _sb = typeof menuLocations !== 'undefined' && menuLocations ? menuLocations.sidebar : null; %>
+<div class="container" style="max-width:<%= _sb && _sb.length ? '1140px' : '680px' %>;padding:48px 24px">
+<div class="<%= _sb && _sb.length ? 'page-with-sidebar' : '' %>">
+<div>
   <article>
 
     <div class="post-header">
@@ -19,6 +22,9 @@
     <div class="post-body"><%- bodyHtml %></div>
 
   </article>
+</div>
+<%- include('../partials/frontend-sidebar') %>
+</div>
 </div>
 
 <%- include('../partials/frontend-footer') %>
