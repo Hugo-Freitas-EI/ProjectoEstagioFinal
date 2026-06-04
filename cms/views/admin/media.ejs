@@ -42,8 +42,18 @@
         <% if (!f.mime_type) { %>
           <!-- 📁 PASTA -->
           <div class="col-6 col-sm-4 col-md-3 col-xl-2">
-            <div class="card shadow-sm h-100" style="cursor:pointer"
+            <div class="card shadow-sm h-100" style="cursor:pointer;position:relative"
                  onclick="window.location='?folder=<%= f.id %>'">
+              <form method="POST" action="/admin/media/folder/<%= f.id %>/delete"
+                    style="position:absolute;top:6px;right:6px;z-index:10"
+                    onsubmit="return confirm('Apagar a pasta «<%= f.titulo %>» e todo o seu conteúdo?')"
+                    onclick="event.stopPropagation()">
+                <button type="submit" class="btn btn-sm"
+                        style="padding:2px 6px;background:rgba(0,0,0,.45);border:none;border-radius:4px;color:#fff;line-height:1"
+                        title="Apagar pasta">
+                  <i class="bi bi-trash" style="font-size:11px"></i>
+                </button>
+              </form>
               <div class="card-img-top d-flex align-items-center justify-content-center"
                    style="height:120px;font-size:3rem;background:var(--surface2)">📁</div>
               <div class="card-body p-2 text-center small">

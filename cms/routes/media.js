@@ -210,4 +210,16 @@ router.post('/folder', requirePermission('media.write'), async (req, res) => {
   }
 });
 
+router.post('/folder/:id/delete', requirePermission('media.write'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    // apaga recursivamente todos os ficheiros e subpastas dentro desta pasta
+    await db.query(`DELETE FROM media WHERE id = ? OR parent_id = ?`, [id, id]);
+    res.redirect('/admin/media');
+  } catch (err) {
+    console.error('Erro ao apagar pasta:', err);
+    res.redirect('/admin/media');
+  }
+});
+
 module.exports = router;
