@@ -39,6 +39,7 @@ app.use(async function(req, res, next) {
     res.locals.user        = req.session.user || null;
     res.locals.siteName    = process.env.SITE_NAME    || 'NodeCMS';
     res.locals.siteTagline = process.env.SITE_TAGLINE || '';
+    res.locals.siteLogoUrl = null;
     res.locals.siteIcon    = null;
     res.locals.siteNoIndex = false;
   }

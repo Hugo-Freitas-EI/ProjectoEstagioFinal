@@ -34,8 +34,12 @@ function renderMenuTree(items, depth) {
 <nav class="navbar navbar-expand-lg sticky-top">
   <div class="container" style="max-width:860px">
     <a class="navbar-brand" href="/">
-      <%= siteName %>
-      <% if (siteTagline) { %><small><%= siteTagline %></small><% } %>
+      <% if (siteLogoUrl) { %>
+        <img src="<%= siteLogoUrl %>" alt="<%= siteName %>" style="max-height:48px;max-width:200px;object-fit:contain">
+      <% } else { %>
+        <%= siteName %>
+        <% if (siteTagline) { %><small><%= siteTagline %></small><% } %>
+      <% } %>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
       <span class="navbar-toggler-icon"></span>
