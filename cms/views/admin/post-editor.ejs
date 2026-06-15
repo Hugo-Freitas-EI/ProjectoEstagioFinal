@@ -186,14 +186,6 @@
 
                   <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
 
-                  <!-- Tamanho -->
-                  <button type="button" class="toolbar-btn" onclick="redimensionarImagem(25)" title="Pequena (25%)">S</button>
-                  <button type="button" class="toolbar-btn" onclick="redimensionarImagem(50)" title="Média (50%)">M</button>
-                  <button type="button" class="toolbar-btn" onclick="redimensionarImagem(75)" title="Grande (75%)">L</button>
-                  <button type="button" class="toolbar-btn" onclick="redimensionarImagem(100)" title="Largura total (100%)">XL</button>
-
-                  <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
-
                   <button type="button" class="toolbar-btn" onclick="formatarImagem('remover')" title="Remover Imagem">
                     <i class="bi bi-trash text-danger"></i>
                   </button>
@@ -678,9 +670,92 @@
         }
 
         let imagemSelecionada = null;
+        let resizeState = null;
         const editorVisual = document.getElementById('editor-visual');
 
-        // Ao clicar dentro do editor
+        // ── Overlay de redimensionamento (handles nos cantos) ─────────────────────
+        var resizeOverlay = (function () {
+          var el = document.createElement('div');
+          el.style.cssText = [
+            'position:absolute',
+            'border:2px solid var(--accent,#8b5cf6)',
+            'pointer-events:none',
+            'display:none',
+            'z-index:1051',
+            'box-sizing:border-box',
+          ].join(';');
+
+          ['nw','ne','sw','se'].forEach(function (c) {
+            var h = document.createElement('div');
+            h.dataset.corner = c;
+            var cursors = { nw:'nw-resize', ne:'ne-resize', sw:'sw-resize', se:'se-resize' };
+            h.style.cssText = [
+              'position:absolute',
+              'width:10px',
+              'height:10px',
+              'background:#fff',
+              'border:2px solid var(--accent,#8b5cf6)',
+              'border-radius:2px',
+              'pointer-events:all',
+              'box-sizing:border-box',
+              'cursor:' + cursors[c],
+            ].join(';');
+            if (c === 'nw') { h.style.top    = '-5px'; h.style.left  = '-5px'; }
+            if (c === 'ne') { h.style.top    = '-5px'; h.style.right = '-5px'; }
+            if (c === 'sw') { h.style.bottom = '-5px'; h.style.left  = '-5px'; }
+            if (c === 'se') { h.style.bottom = '-5px'; h.style.right = '-5px'; }
+            h.addEventListener('mousedown', iniciarResize);
+            el.appendChild(h);
+          });
+
+          // Inserir no .position-relative da card-body
+          var container = document.querySelector('.card-body.p-0.position-relative');
+          if (container) container.appendChild(el);
+          return el;
+        }());
+
+        function posicionarOverlay(img) {
+          resizeOverlay.style.top    = (img.offsetTop  - editorVisual.scrollTop)  + 'px';
+          resizeOverlay.style.left   =  img.offsetLeft + 'px';
+          resizeOverlay.style.width  =  img.offsetWidth  + 'px';
+          resizeOverlay.style.height =  img.offsetHeight + 'px';
+          resizeOverlay.style.display = 'block';
+        }
+
+        function iniciarResize(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!imagemSelecionada) return;
+          resizeState = {
+            corner:     e.currentTarget.dataset.corner,
+            startX:     e.clientX,
+            startWidth: imagemSelecionada.getBoundingClientRect().width,
+          };
+          document.addEventListener('mousemove', duranteResize);
+          document.addEventListener('mouseup',   terminarResize);
+        }
+
+        function duranteResize(e) {
+          if (!resizeState || !imagemSelecionada) return;
+          var dx = e.clientX - resizeState.startX;
+          var nova = (resizeState.corner === 'se' || resizeState.corner === 'ne')
+            ? resizeState.startWidth + dx
+            : resizeState.startWidth - dx;
+          nova = Math.max(40, Math.round(nova));
+          imagemSelecionada.style.width    = nova + 'px';
+          imagemSelecionada.style.maxWidth = 'none';
+          imagemSelecionada.style.height   = 'auto';
+          posicionarOverlay(imagemSelecionada);
+        }
+
+        function terminarResize() {
+          document.removeEventListener('mousemove', duranteResize);
+          document.removeEventListener('mouseup',   terminarResize);
+          resizeState = null;
+          sincronizarEditor();
+        }
+
+        // ── Clique dentro do editor ───────────────────────────────────────────────
         editorVisual.addEventListener('click', function (e) {
           if (e.target.tagName === 'IMG') {
             selecionarImagem(e.target);
@@ -689,76 +764,69 @@
           }
         });
 
-        // Se o user escrever ou fizer scroll, esconde a barra para não atrapalhar
-        editorVisual.addEventListener('input', removerSelecaoImagem);
-        editorVisual.addEventListener('scroll', removerSelecaoImagem);
+        editorVisual.addEventListener('input',  removerSelecaoImagem);
+        editorVisual.addEventListener('scroll', function () {
+          if (imagemSelecionada) posicionarOverlay(imagemSelecionada);
+          // reposicionar também a toolbar de ações
+          var toolbar = document.getElementById('image-toolbar');
+          if (imagemSelecionada && !toolbar.classList.contains('d-none')) {
+            atualizarToolbar(imagemSelecionada);
+          }
+        });
+
+        function atualizarToolbar(img) {
+          var toolbar = document.getElementById('image-toolbar');
+          var topPos  = img.offsetTop - editorVisual.scrollTop - toolbar.offsetHeight - 6;
+          var leftPos = img.offsetLeft + (img.offsetWidth / 2) - (toolbar.offsetWidth / 2);
+          toolbar.style.top  = Math.max(4, topPos)  + 'px';
+          toolbar.style.left = Math.max(4, leftPos) + 'px';
+        }
 
         function selecionarImagem(img) {
-          removerSelecaoImagem(); // Limpa estado anterior
+          removerSelecaoImagem();
           imagemSelecionada = img;
           imagemSelecionada.classList.add('selected-img');
 
-          const toolbar = document.getElementById('image-toolbar');
+          var toolbar = document.getElementById('image-toolbar');
           toolbar.classList.remove('d-none');
-
-          // Calcular a posição baseada no offset da imagem e do scroll do editor
-          const topPos = img.offsetTop - editorVisual.scrollTop - 45;
-          const leftPos = img.offsetLeft + (img.offsetWidth / 2) - (toolbar.offsetWidth / 2);
-
-          // Impedir que a tooltip fuja do quadro (margem de segurança)
-          toolbar.style.top = Math.max(10, topPos) + 'px';
-          toolbar.style.left = Math.max(10, leftPos) + 'px';
+          atualizarToolbar(img);
+          posicionarOverlay(img);
         }
 
         function removerSelecaoImagem() {
-          const toolbar = document.getElementById('image-toolbar');
-          if (toolbar && !toolbar.classList.contains('d-none')) {
-            toolbar.classList.add('d-none');
-          }
+          resizeOverlay.style.display = 'none';
+          var toolbar = document.getElementById('image-toolbar');
+          if (!toolbar.classList.contains('d-none')) toolbar.classList.add('d-none');
           if (imagemSelecionada) {
             imagemSelecionada.classList.remove('selected-img');
             imagemSelecionada = null;
           }
         }
 
-        function redimensionarImagem(percentagem) {
-          if (!imagemSelecionada) return;
-          imagemSelecionada.style.width = percentagem + '%';
-          imagemSelecionada.style.maxWidth = percentagem + '%';
-          imagemSelecionada.style.height = 'auto';
-          sincronizarEditor();
-          selecionarImagem(imagemSelecionada); // reposicionar toolbar
-        }
-
         function formatarImagem(acao) {
           if (!imagemSelecionada) return;
 
-          // Fazer reset aos estilos flutuantes
-          imagemSelecionada.style.float = '';
+          imagemSelecionada.style.float   = '';
           imagemSelecionada.style.display = 'block';
-          imagemSelecionada.style.margin = '10px 0';
+          imagemSelecionada.style.margin  = '10px 0';
 
           if (acao === 'esquerda') {
-            imagemSelecionada.style.float = 'left';
+            imagemSelecionada.style.float  = 'left';
             imagemSelecionada.style.margin = '0 15px 15px 0';
           } else if (acao === 'centro') {
-            imagemSelecionada.style.display = 'block';
             imagemSelecionada.style.margin = '15px auto';
           } else if (acao === 'direita') {
-            imagemSelecionada.style.float = 'right';
+            imagemSelecionada.style.float  = 'right';
             imagemSelecionada.style.margin = '0 0 15px 15px';
           } else if (acao === 'remover') {
             imagemSelecionada.remove();
             removerSelecaoImagem();
+            sincronizarEditor();
+            return;
           }
-          // Se for "nenhum", mantém o reset padrão
 
           sincronizarEditor();
-
-          // Se a imagem não foi apagada, recalcula a posição da tooltip
-          if (imagemSelecionada) {
-            selecionarImagem(imagemSelecionada);
-          }
+          selecionarImagem(imagemSelecionada);
         }
 
         // Estilos CSS
@@ -785,6 +853,10 @@
               max-width: 100%;
               height: auto;
               cursor: pointer;
+            }
+            #editor-visual img.selected-img {
+              outline: 2px solid var(--accent, #8b5cf6);
+              outline-offset: 1px;
             }
             .toolbar-btn.disabled {
               opacity: 0.4;
