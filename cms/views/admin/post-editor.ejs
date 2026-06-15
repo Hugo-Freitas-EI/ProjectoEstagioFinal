@@ -168,6 +168,7 @@
 
                 <div id="image-toolbar" class="d-none shadow-sm"
                   style="background-color: var(--bg-card, #1e1e2d); border-color: var(--border, #2b2b40);">
+                  <!-- Alinhamento -->
                   <button type="button" class="toolbar-btn" onclick="formatarImagem('esquerda')"
                     title="Alinhar à Esquerda">
                     <i class="bi bi-text-left"></i>
@@ -182,6 +183,14 @@
                   <button type="button" class="toolbar-btn" onclick="formatarImagem('nenhum')" title="Sem Alinhamento">
                     <i class="bi bi-x-circle"></i>
                   </button>
+
+                  <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
+
+                  <!-- Tamanho -->
+                  <button type="button" class="toolbar-btn" onclick="redimensionarImagem(25)" title="Pequena (25%)">S</button>
+                  <button type="button" class="toolbar-btn" onclick="redimensionarImagem(50)" title="Média (50%)">M</button>
+                  <button type="button" class="toolbar-btn" onclick="redimensionarImagem(75)" title="Grande (75%)">L</button>
+                  <button type="button" class="toolbar-btn" onclick="redimensionarImagem(100)" title="Largura total (100%)">XL</button>
 
                   <div style="width:1px;height:18px;background:var(--border);margin:0 4px"></div>
 
@@ -514,10 +523,17 @@
 
       <script>
         // Estado da navegação de pastas
-        var mediaFolderStack = []; // pilha de IDs de pasta
+        var mediaFolderStack = [];
+        var savedSelection = null; // guarda cursor do editor antes de abrir a biblioteca
 
         // Abrir biblioteca de media
         function abrirBibliotecaMedia() {
+          // Guardar a posição do cursor no editor para restaurar ao inserir
+          var editor = document.getElementById('editor-visual');
+          editor.focus();
+          var sel = window.getSelection();
+          savedSelection = sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+
           mediaFolderStack = [];
           document.getElementById('media-back-btn').classList.add('d-none');
           var offcanvas = new bootstrap.Offcanvas(document.getElementById('bibliotecaMediaOffcanvas'));
@@ -617,27 +633,48 @@
         // Selecionar e inserir imagem no Editor Visual
         function selecionarImagemMedia(url, titulo) {
           var editor = document.getElementById('editor-visual');
-          editor.focus();
 
-          // Inserir tag de imagem nativamente
-          document.execCommand('insertImage', false, url);
-
-          // Estilizar a imagem acabada de inserir
-          var imagens = editor.getElementsByTagName('img');
-          if (imagens.length > 0) {
-            var ultimaImg = imagens[imagens.length - 1];
-            ultimaImg.style.maxWidth = '100%';
-            ultimaImg.style.height = 'auto';
-            ultimaImg.style.borderRadius = '8px';
-            ultimaImg.style.marginTop = '10px';
-            ultimaImg.style.marginBottom = '10px';
-            ultimaImg.alt = titulo;
-          }
-
-          sincronizarEditor();
-
+          // Fechar o offcanvas primeiro
           var offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById('bibliotecaMediaOffcanvas'));
           offcanvas.hide();
+
+          // Criar o elemento imagem
+          var img = document.createElement('img');
+          img.src = url;
+          img.alt = titulo || '';
+          img.style.maxWidth = '100%';
+          img.style.width = '100%';
+          img.style.height = 'auto';
+          img.style.borderRadius = '8px';
+          img.style.display = 'block';
+          img.style.margin = '10px 0';
+
+          // Restaurar a seleção guardada e inserir no cursor
+          editor.focus();
+          var sel = window.getSelection();
+          sel.removeAllRanges();
+          if (savedSelection) {
+            sel.addRange(savedSelection);
+          } else {
+            // Se não há seleção guardada, inserir no fim do editor
+            var range = document.createRange();
+            range.selectNodeContents(editor);
+            range.collapse(false);
+            sel.addRange(range);
+          }
+
+          var range = sel.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(img);
+
+          // Mover cursor para depois da imagem
+          range.setStartAfter(img);
+          range.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(range);
+
+          savedSelection = null;
+          sincronizarEditor();
         }
 
         let imagemSelecionada = null;
@@ -682,6 +719,15 @@
             imagemSelecionada.classList.remove('selected-img');
             imagemSelecionada = null;
           }
+        }
+
+        function redimensionarImagem(percentagem) {
+          if (!imagemSelecionada) return;
+          imagemSelecionada.style.width = percentagem + '%';
+          imagemSelecionada.style.maxWidth = percentagem + '%';
+          imagemSelecionada.style.height = 'auto';
+          sincronizarEditor();
+          selecionarImagem(imagemSelecionada); // reposicionar toolbar
         }
 
         function formatarImagem(acao) {
